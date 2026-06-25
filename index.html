@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>造物池</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #060608;
+  --bg-secondary: #0D0D12;
+  --bg-card: #13131A;
+  --bg-card-hover: #1A1A24;
+  --bg-surface: rgba(255,255,255,0.03);
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-medium: rgba(255,255,255,0.10);
+  --text-primary: #F0F0F5;
+  --text-secondary: #8A8A9A;
+  --text-tertiary: #5A5A6A;
+  --accent: #0348FF;
+  --accent-light: #2B6BFF;
+  --accent-glow: rgba(3, 72, 255, 0.25);
+  --accent-soft: rgba(3, 72, 255, 0.12);
+  --danger: #FF3B5C;
+  --danger-soft: rgba(255,59,92,0.12);
+  --success: #00D68F;
+  --warning: #FFB020;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --font-display: 'Playfair Display', serif;
+  --font-body: 'Noto Sans SC', -apple-system, sans-serif;
+  --tab-height: 68px;
+  --header-height: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  height:100%;overflow:hidden;
+  font-family:var(--font-body);
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  -webkit-font-smoothing:antialiased;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;-webkit-user-select:none;
+}
+
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 80% 50% at 50% -20%, rgba(3,72,255,0.06), transparent),
+             radial-gradient(ellipse 60% 40% at 85% 80%, rgba(3,72,255,0.04), transparent);
+}
+body::after{
+  content:'';position:fixed;inset:0;opacity:.035;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.app-container{
+  position:relative;z-index:1;max-width:430px;height:100%;margin:0 auto;
+  display:flex;flex-direction:column;background:var(--bg-primary);overflow:hidden;
+}
+
+/* Header */
+.app-header{
+  flex-shrink:0;height:var(--header-height);display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;position:relative;z-index:10;
+}
+.header-brand{display:flex;align-items:center;gap:10px}
+.header-logo{width:34px;height:34px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.header-logo::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 40%,rgba(255,255,255,0.2))}
+.header-logo svg{width:18px;height:18px;position:relative;z-index:1}
+.header-title{font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:.02em}
+.header-actions{display:flex;gap:8px}
+.header-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
+.header-btn:active{background:var(--bg-card);border-color:var(--accent)}
+.header-btn .badge{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid var(--bg-primary)}
+
+/* Main Content */
+.main-content{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;scroll-behavior:smooth}
+.main-content::-webkit-scrollbar{display:none}
+
+/* Search */
+.search-bar{position:relative;margin-bottom:16px;margin-top:4px}
+.search-input{width:100%;padding:11px 14px 11px 40px;background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);color:var(--text-primary);font-family:var(--font-body);font-size:14px;outline:none;transition:all .2s}
+.search-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.search-input::placeholder{color:var(--text-tertiary)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-tertiary);pointer-events:none}
+.search-clear{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--text-tertiary);cursor:pointer;display:none;width:20px;height:20px;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,0.08);font-size:12px;border:none}
+.search-clear.visible{display:flex}
+
+/* Tab Pages */
+.tab-page{display:none;padding:0 20px 20px;animation:fadeSlideIn .35s ease}
+.tab-page.active{display:block}
+@keyframes fadeSlideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Section Header */
+.section-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.section-title{font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:.01em}
+.section-subtitle{font-size:13px;color:var(--text-tertiary);margin-top:2px;font-weight:400}
+.section-meta{display:flex;align-items:center;gap:8px;margin-top:4px}
+.stat-badge{font-size:11px;color:var(--text-tertiary);background:var(--bg-card);padding:4px 10px;border-radius:20px;border:1px solid var(--border-subtle)}
+.add-btn{display:flex;align-items:center;gap:6px;padding:10px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-md);font-family:var(--font-body);font-size:13px;font-weight:500;cursor:pointer;transition:all .25s;white-space:nowrap;box-shadow:0 4px 20px var(--accent-glow)}
+.add-btn:active{transform:scale(.96);box-shadow:0 2px 12px var(--accent-glow)}
+.add-btn svg{width:15px;height:15px}
+
+/* Empty State */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:50px 30px;text-align:center}
+.empty-icon{width:72px;height:72px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border-medium);display:flex;align-items:center;justify-content:center;margin-bottom:20px;color:var(--text-tertiary)}
+.empty-state h3{font-family:var(--font-display);font-size:18px;margin-bottom:6px;color:var(--text-secondary)}
+.empty-state p{font-size:13px;color:var(--text-tertiary);max-width:240px;line-height:1.5}
+
+/* Card Grid */
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Work Card */
+.work-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;cursor:pointer;transition:all .3s;position:relative}
+.work-card:active{transform:scale(.97);border-color:var(--border-medium)}
+.work-card-cover{width:100%;aspect-ratio:1;background:var(--bg-secondary);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);overflow:hidden;position:relative}
+.work-card-cover img,.work-card-cover svg{width:100%;height:100%;object-fit:cover;display:block}
+.work-card-overlay{position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(0,0,0,.6));opacity:0;transition:opacity .3s;display:flex;align-items:flex-end;justify-content:flex-end;padding:8px}
+.work-card:active .work-card-overlay,.work-card.long-press .work-card-overlay{opacity:1}
+.work-card-body{padding:12px}
+.work-card-title{font-size:14px;font-weight:600;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.work-card-desc{font-size:12px;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:8px}
+.work-card-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:10px;padding:3px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-light);font-weight:500;border:1px solid rgba(3,72,255,.15)}
+.tag-outline{background:transparent;border:1px solid var(--border-medium);color:var(--text-secondary)}
+
+/* Context Menu */
+.context-menu{position:fixed;z-index:300;background:var(--bg-card);border:1px solid var(--border-medium);border-radius:var(--radius-md);padding:4px;min-width:120px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:scaleIn .15s ease;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+@keyframes scaleIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+.context-item{padding:10px 14px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;color:var(--text-secondary)}
+.context-item:active{background:var(--bg-card-hover)}
+.context-item.danger{color:var(--danger)}
+.context-item.danger:active{background:var(--danger-soft)}
+
+/* Confirm Dialog */
+.confirm-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center;animation:fadeIn .25s ease}
+.confirm-dialog{background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);width:calc(100% - 60px);max-width:320px;padding:24px;text-align:center;animation:scaleIn .25s ease}
+.confirm-dialog h3{font-family:var(--font-display);font-size:18px;margin-bottom:8px}
+.confirm-dialog p{font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:20px}
+.confirm-actions{display:flex;gap:10px}
+.confirm-btn{flex:1;padding:12px;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;border:none}
+.confirm-btn:active{transform:scale(.97)}
+.confirm-cancel{background:var(--bg-card);color:var(--text-secondary);border:1px solid var(--border-medium)}
+.confirm-danger{background:var(--danger);color:#fff}
+
+/* Modal Overlay */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);z-index:100;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-sheet{background:var(--bg-secondary);border-radius:var(--radius-xl) var(--radius-xl) 0 0;width:100%;max-width:430px;max-height:85vh;overflow-y:auto;animation:slideUp .35s cubic-bezier(.16,1,.3,1);border:1px solid var(--border-subtle);border-bottom:none}
+.modal-sheet::-webkit-scrollbar{display:none}
+.modal-sheet.noscroll{overflow:hidden}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--border-medium);margin:12px auto 8px}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 16px;border-bottom:1px solid var(--border-subtle)}
+.modal-title{font-family:var(--font-display);font-size:20px;font-weight:700}
+.modal-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border-medium);background:var(--bg-card);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;transition:all .2s}
+.modal-close:active{background:var(--bg-card-hover)}
+.modal-body{padding:20px;display:flex;flex-direction:column;gap:16px}
+
+/* Form Elements */
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:13px;font-weight:500;color:var(--text-secondary)}
+.form-label .required{color:var(--danger);margin-left:2px}
+.form-input,.form-textarea,.form-select{width:100%;padding:12px 14px;background:var(--bg-card);border:1px solid var(--border-medium);border-radius:var(--radius-sm);color:var(--text-primary);font-family:var(--font-body);font-size:14px;transition:all .2s;outline:none}
+.form-input:focus,.form-textarea:focus,.form-select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.form-textarea{resize:vertical;min-height:80px;line-height:1.5}
+.form-select{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1.5L6 6.5L11 1.5' stroke='%238A8A9A' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+
+/* Upload */
+.upload-area{border:1.5px dashed var(--border-medium);border-radius:var(--radius-md);padding:28px 20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:all .25s;background:var(--bg-surface);color:var(--text-tertiary)}
+.upload-area:active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-light)}
+.upload-area svg{width:32px;height:32px}
+.upload-area .upload-text{font-size:13px;font-weight:500}
+.upload-area .upload-hint{font-size:11px;color:var(--text-tertiary)}
+.upload-preview{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.upload-preview-item{aspect-ratio:1;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border-subtle);overflow:hidden;position:relative}
+.upload-preview-item img{width:100%;height:100%;object-fit:cover}
+.upload-preview-item .remove-btn{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.7);color:#fff;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px}
+
+/* Submit */
+.submit-btn{width:100%;padding:14px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-family:var(--font-body);font-size:15px;font-weight:600;cursor:pointer;transition:all .25s;margin-top:4px;box-shadow:0 4px 20px var(--accent-glow)}
+.submit-btn:active{transform:scale(.98);box-shadow:0 2px 10px var(--accent-glow)}
+.submit-btn.delete{margin-top:8px;background:transparent;border:1px solid var(--danger);color:var(--danger);box-shadow:none}
+.submit-btn.delete:active{background:var(--danger-soft)}
+
+/* Toast */
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);background:var(--bg-card);border:1px solid var(--border-medium);padding:12px 24px;border-radius:var(--radius-md);font-size:14px;color:var(--text-primary);z-index:300;animation:toastIn .3s ease,toastOut .3s ease 2s forwards;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);white-space:nowrap;pointer-events:none}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes toastOut{from{opacity:1}to{opacity:0}}
+
+/* Detail Modal */
+.detail-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);z-index:100;display:flex;align-items:center;justify-content:center;animation:fadeIn .25s ease}
+.detail-card{background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);width:calc(100% - 40px);max-width:430px;max-height:80vh;overflow-y:auto;animation:slideUp .35s cubic-bezier(.16,1,.3,1)}
+.detail-card::-webkit-scrollbar{display:none}
+.detail-cover{width:100%;aspect-ratio:16/10;background:var(--bg-card);display:flex;align-items:center;justify-content:center;color:var(--text-tertiary);overflow:hidden;position:relative}
+.detail-cover img,.detail-cover svg{width:100%;height:100%;object-fit:cover;display:block}
+.detail-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;backdrop-filter:blur(8px);z-index:2}
+.detail-actions{position:absolute;top:12px;left:12px;display:flex;gap:6px;z-index:2}
+.detail-act-btn{width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;backdrop-filter:blur(8px);transition:all .2s}
+.detail-act-btn:active{background:rgba(0,0,0,.8)}
+.detail-body{padding:20px}
+.detail-title{font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:6px}
+.detail-desc{font-size:14px;color:var(--text-secondary);line-height:1.6;margin-bottom:16px}
+.detail-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+.detail-time{font-size:12px;color:var(--text-tertiary);margin-left:auto}
+.detail-field{margin-bottom:12px;background:var(--bg-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--border-subtle)}
+.detail-field-label{font-size:11px;color:var(--text-tertiary);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.detail-field-value{font-size:14px;color:var(--text-primary);line-height:1.5}
+.detail-gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}
+.detail-gallery-item{aspect-ratio:1;border-radius:var(--radius-sm);overflow:hidden;background:var(--bg-card);border:1px solid var(--border-subtle);cursor:pointer}
+.detail-gallery-item img,.detail-gallery-item svg{width:100%;height:100%;object-fit:cover}
+.detail-link{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:var(--accent);color:#fff;border-radius:var(--radius-sm);text-decoration:none;font-size:14px;font-weight:500;margin-top:8px;transition:all .2s}
+.detail-link:active{opacity:.8}
+.detail-empty-gallery{grid-column:1/-1;text-align:center;padding:20px;color:var(--text-tertiary);font-size:13px}
+
+/* App Card */
+.app-list{display:flex;flex-direction:column;gap:10px}
+.app-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:14px 16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .25s;position:relative}
+.app-card:active{background:var(--bg-card-hover);border-color:var(--border-medium)}
+.app-icon{width:46px;height:46px;border-radius:var(--radius-sm);background:var(--accent-soft);border:1px solid rgba(3,72,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accent-light);overflow:hidden}
+.app-icon svg{width:22px;height:22px}
+.app-info{flex:1;min-width:0}
+.app-name{font-size:15px;font-weight:600;margin-bottom:2px}
+.app-type{font-size:12px;color:var(--text-tertiary)}
+.app-meta{display:flex;align-items:center;gap:8px;margin-top:3px}
+.app-link-hint{font-size:11px;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+.app-arrow{color:var(--text-tertiary);flex-shrink:0;transition:transform .2s}
+.app-card:active .app-arrow{transform:translateX(3px)}
+
+/* Filter Chips */
+.filter-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.filter-chip{flex-shrink:0;padding:7px 16px;border-radius:20px;border:1px solid var(--border-medium);background:var(--bg-card);color:var(--text-secondary);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.filter-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter-chip:active{transform:scale(.95)}
+
+/* Full Image Viewer */
+.image-viewer{position:fixed;inset:0;background:#000;z-index:250;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s ease}
+.image-viewer img,.image-viewer svg{max-width:100%;max-height:100%;object-fit:contain}
+.image-viewer-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+/* Tab Bar */
+.tab-bar{flex-shrink:0;height:var(--tab-height);background:var(--bg-secondary);border-top:1px solid var(--border-subtle);display:flex;align-items:center;padding:0 8px;padding-bottom:var(--safe-bottom);position:relative;z-index:10}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;color:var(--text-tertiary);transition:all .3s;padding:6px 0;position:relative}
+.tab-item.active{color:var(--accent)}
+.tab-item.active::before{content:'';position:absolute;top:-1px;left:50%;transform:translateX(-50%);width:24px;height:3px;border-radius:0 0 3px 3px;background:var(--accent)}
+.tab-icon{width:24px;height:24px;display:flex;align-items:center;justify-content:center}
+.tab-label{font-size:11px;font-weight:500}
+.tab-badge{position:absolute;top:2px;right:calc(50% - 22px);min-width:16px;height:16px;border-radius:8px;background:var(--accent);color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:600}
+
+@media(min-width:431px){.app-container{border-left:1px solid var(--border-subtle);border-right:1px solid var(--border-subtle)}}
+</style>
+</head>
+<body>
+
+<div class="app-container">
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <span class="header-title">造物池</span>
+    </div>
+    <div class="header-actions">
+      <button class="header-btn" onclick="toggleDataMenu(event)" title="数据管理">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+      </button>
+      <button class="header-btn" onclick="toggleSearch()" title="搜索">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="main-content" id="mainContent">
+    <div class="tab-page active" id="page-works"></div>
+    <div class="tab-page" id="page-aiimage"></div>
+    <div class="tab-page" id="page-aiapp"></div>
+  </main>
+
+  <nav class="tab-bar">
+    <div class="tab-item active" data-tab="works" onclick="switchTab('works')">
+      <div class="tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+      <span class="tab-label">个人作品</span>
+      <span class="tab-badge" id="badge-works" style="display:none">0</span>
+    </div>
+    <div class="tab-item" data-tab="aiimage" onclick="switchTab('aiimage')">
+      <div class="tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/></svg></div>
+      <span class="tab-label">AI生图</span>
+      <span class="tab-badge" id="badge-aiimage" style="display:none">0</span>
+    </div>
+    <div class="tab-item" data-tab="aiapp" onclick="switchTab('aiapp')">
+      <div class="tab-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><line x1="8" y1="2" x2="8" y2="22"/><line x1="16" y1="2" x2="16" y2="22"/><line x1="2" y1="8" x2="22" y2="8"/><line x1="2" y1="16" x2="22" y2="16"/></svg></div>
+      <span class="tab-label">AI应用</span>
+      <span class="tab-badge" id="badge-aiapp" style="display:none">0</span>
+    </div>
+  </nav>
+</div>
+
+<div id="modalsContainer"></div>
+<div id="toastContainer"></div>
+<input type="file" id="dataImportInput" accept=".json" style="display:none" onchange="importData(this)">
+
+<script>
+// ── SVG Cover Generators ──
+function svgCover(config) {
+  const {gradient, shapes, text, icon} = config;
+  let shapeEls = '';
+  if (shapes) {
+    shapes.forEach((s,i) => {
+      shapeEls += `<circle cx="${s.cx}" cy="${s.cy}" r="${s.r}" fill="${s.fill}" opacity="${s.opacity||0.6}"/>`;
+      shapeEls += `<circle cx="${s.cx}" cy="${s.cy}" r="${s.r*1.6}" fill="none" stroke="${s.fill}" stroke-width="0.5" opacity="${(s.opacity||0.6)*0.4}"/>`;
+    });
+  }
+  let textEl = '';
+  if (text) {
+    textEl = `<text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" fill="rgba(255,255,255,0.9)" font-family="'Noto Sans SC',sans-serif" font-size="18" font-weight="700" letter-spacing="0.05em">${text}</text>`;
+  }
+  let iconEl = '';
+  if (icon) {
+    iconEl = `<g transform="translate(128,100)" opacity="0.25">${icon}</g>`;
+  }
+  const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${gradient[0]}"/><stop offset="100%" stop-color="${gradient[1]}"/></linearGradient></defs><rect width="256" height="256" fill="url(#g)"/>${shapeEls}${iconEl}${textEl}</svg>`;
+  return 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgStr)));
+}
+
+// ── Icon SVGs ──
+const ICONS = {
+  design: `<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`,
+  brush: `<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>`,
+  camera: `<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>`,
+  code: `<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>`,
+  sparkle: `<path d="M12 2l2.5 6.5L21 9l-5 4 1.5 7-5.5-3.5L6.5 20 8 13l-5-4 6.5-.5z"/>`,
+  palette: `<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.6 1.5-1.5 0-.4-.15-.75-.4-1-.25-.25-.4-.6-.4-1 0-.9.7-1.5 1.5-1.5H16c5.5 0 10-4.5 10-10C26 6.5 17.5 2 12 2z"/>`,
+  bot: `<rect x="3" y="6" width="18" height="14" rx="3"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><path d="M9 16h6"/>`,
+};
+
+// ── Data ──
+const DATA_FILE = 'data.json';
+const LS_KEY = 'zaowuchi_userdata';
+const Store = { works: [], aiImages: [], aiApps: [], activeTab: 'works', filter: 'all', searchQuery: '', searchVisible: false };
+
+function generateId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
+
+// Regenerate SVG covers from coverConfig
+function hydrateCovers(items) {
+  items.forEach(item => {
+    if (item.coverConfig && !item.cover) {
+      item.cover = svgCover(item.coverConfig);
+    }
+  });
+}
+
+// ── Persistence: localStorage (primary) + data.json (seed) + file sync (bonus) ──
+let _fileHandle = null;
+
+function _lsSave(data) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); return true; }
+  catch(e) { return false; }
+}
+
+function _lsLoad() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return null;
+}
+
+// IndexedDB for persisting the file handle
+function _idb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('zaowuchi_fs', 1);
+    req.onupgradeneeded = () => { req.result.createObjectStore('handles'); };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function _saveFileHandle(handle) {
+  try {
+    const db = await _idb();
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(handle, 'dataFileHandle');
+    await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
+    db.close();
+  } catch(e) {}
+}
+
+async function _restoreFileHandle() {
+  try {
+    const db = await _idb();
+    const tx = db.transaction('handles', 'readonly');
+    const req = tx.objectStore('handles').get('dataFileHandle');
+    const handle = await new Promise((resolve, reject) => {
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    if (handle) {
+      const opts = { mode: 'readwrite' };
+      const ok = await handle.queryPermission(opts);
+      if (ok === 'granted') return handle;
+      const req2 = await handle.requestPermission(opts);
+      if (req2 === 'granted') return handle;
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+async function _syncToFile() {
+  if (!_fileHandle) {
+    _fileHandle = await _restoreFileHandle();
+    if (!_fileHandle) return;
+  }
+  try {
+    const json = JSON.stringify({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps }, null, 2);
+    const writable = await _fileHandle.createWritable();
+    await writable.write(json);
+    await writable.close();
+  } catch(e) {
+    _fileHandle = null;
+  }
+}
+
+function saveData() {
+  // Always save to localStorage (reliable, survives refresh)
+  const data = { works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps };
+  _lsSave(data);
+  updateBadges();
+  // Try to sync to data.json file (best-effort, non-blocking)
+  _syncToFile().catch(() => {});
+}
+
+// ── Data File Loader (GitHub Pages + file:// compatible) ──
+function _isFileProtocol() {
+  return window.location.protocol === 'file:';
+}
+
+async function _loadDataFileAsync() {
+  // On https:// (GitHub Pages), fetch works perfectly
+  try {
+    const resp = await fetch(DATA_FILE, { cache: 'no-cache' });
+    if (resp.ok) return await resp.json();
+  } catch(e) {}
+  // Async XHR fallback
+  try {
+    return await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', DATA_FILE, true);
+      xhr.onload = () => {
+        if (xhr.status === 200 || xhr.status === 0) {
+          try { resolve(JSON.parse(xhr.responseText)); } catch(e) { reject(e); }
+        } else { reject(new Error('xhr fail')); }
+      };
+      xhr.onerror = () => reject(new Error('xhr error'));
+      xhr.send();
+    });
+  } catch(e) { return null; }
+}
+
+function _loadDataFileSync() {
+  // Sync XHR — only needed for file:// protocol
+  try {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', DATA_FILE, false);
+    xhr.overrideMimeType('application/json');
+    xhr.send();
+    if (xhr.status === 200 || xhr.status === 0) {
+      return JSON.parse(xhr.responseText);
+    }
+  } catch(e) {}
+  return null;
+}
+
+function _applyLoadedData(data) {
+  if (data.works) { Store.works = data.works; hydrateCovers(Store.works); }
+  if (data.aiImages) { Store.aiImages = data.aiImages; hydrateCovers(Store.aiImages); }
+  if (data.aiApps) { Store.aiApps = data.aiApps; }
+}
+
+async function loadData() {
+  // 1. Try localStorage first (instant for returning users)
+  const lsData = _lsLoad();
+  if (lsData && Array.isArray(lsData.works) && Array.isArray(lsData.aiImages) && Array.isArray(lsData.aiApps)) {
+    Store.works = lsData.works;
+    Store.aiImages = lsData.aiImages;
+    Store.aiApps = lsData.aiApps;
+    hydrateCovers(Store.works);
+    hydrateCovers(Store.aiImages);
+    _fileHandle = await _restoreFileHandle();
+    return;
+  }
+
+  // 2. Load data.json — strategy depends on protocol
+  let loaded = false;
+  if (_isFileProtocol()) {
+    // file:// — sync XHR is the only reliable way
+    const data = _loadDataFileSync();
+    if (data) { _applyLoadedData(data); loaded = true; }
+  }
+  if (!loaded) {
+    // https:// (GitHub Pages) — fetch is best
+    const data = await _loadDataFileAsync();
+    if (data) { _applyLoadedData(data); loaded = true; }
+  }
+
+  // 3. Fallback to built-in seed data
+  if (!loaded || (Store.works.length === 0 && Store.aiImages.length === 0 && Store.aiApps.length === 0)) {
+    seedDemoData();
+  }
+
+  // 4. Save to localStorage for next visit
+  _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
+
+  // 5. Restore file handle for write-back sync
+  _fileHandle = await _restoreFileHandle();
+}
+
+// ── File Picker (user grants permission for file sync) ──
+async function pickDataFile() {
+  if (!window.showOpenFilePicker) {
+    showToast('当前浏览器不支持文件系统API，请使用Chrome/Edge。数据已通过浏览器存储保存。');
+    return false;
+  }
+  try {
+    const [handle] = await window.showOpenFilePicker({
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+      multiple: false
+    });
+    if (handle.name.toLowerCase().includes('data')) {
+      _fileHandle = handle;
+      await _saveFileHandle(handle);
+      showToast('数据文件已关联');
+      await _syncToFile();
+      return true;
+    } else {
+      showToast('请选择 data.json 文件');
+      return false;
+    }
+  } catch(e) {
+    return false;
+  }
+}
+
+function updateBadges() {
+  ['works','aiimage','aiapp'].forEach(tab => {
+    const badge = document.getElementById('badge-' + tab);
+    let count = 0;
+    if (tab === 'works') count = Store.works.length;
+    else if (tab === 'aiimage') count = Store.aiImages.length;
+    else count = Store.aiApps.length;
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
+  });
+}
+
+// ── Time Format ──
+function formatTime(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return '刚刚';
+  if (mins < 60) return mins + ' 分钟前';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + ' 小时前';
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return days + ' 天前';
+  const weeks = Math.floor(days / 7);
+  if (weeks < 4) return weeks + ' 周前';
+  return new Date(iso).toLocaleDateString('zh-CN', {month:'short',day:'numeric'});
+}
+
+// ── Seed Demo Data ──
+function seedDemoData() {
+  const now = Date.now();
+  const d = (days) => new Date(now - days * 86400000).toISOString();
+
+  Store.works = [
+    {id: generateId(), name:'野蛮生长', description:'探索自然与城市共生的视觉实验，用粗粝的质感与有机形态表达生命的张力', category:'平面设计', link:'', cover:svgCover({gradient:['#0A2E0A','#166534'],shapes:[{cx:80,cy:90,r:45,fill:'#22C55E'},{cx:170,cy:130,r:50,fill:'#16A34A'},{cx:110,cy:170,r:35,fill:'#4ADE80'}],text:'野蛮生长'}),images:[],createdAt:d(1)},
+    {id: generateId(), name:'深海韵律', description:'海洋主题品牌视觉系统，包含Logo、字体、色彩规范与延展应用，为高端生活方式品牌打造', category:'品牌设计', link:'https://dribbble.com/shots/2156789', cover:svgCover({gradient:['#0A1A3A','#0348FF'],shapes:[{cx:80,cy:100,r:40,fill:'#0EA5E9'},{cx:180,cy:160,r:55,fill:'#0348FF'},{cx:120,cy:60,r:25,fill:'#38BDF8'}],text:'深海韵律'}),images:[],createdAt:d(2)},
+    {id: generateId(), name:'FinTrack 仪表盘', description:'个人财务管理应用仪表盘设计，深色模式，数据可视化图表与流畅交互', category:'UI设计', link:'https://dribbble.com/shots/1985432', cover:svgCover({gradient:['#0F172A','#1E3A5F'],shapes:[{cx:60,cy:80,r:35,fill:'#0348FF'},{cx:190,cy:120,r:45,fill:'#2563EB'},{cx:100,cy:180,r:30,fill:'#3B82F6'}],text:'FinTrack'}),images:[],createdAt:d(5)},
+    {id: generateId(), name:'霓虹都市', description:'赛博朋克风格城市夜景插画，霓虹灯与未来建筑交织，暗夜氛围浓烈', category:'插画', link:'', cover:svgCover({gradient:['#1A0533','#4C1D95'],shapes:[{cx:100,cy:110,r:50,fill:'#A855F7'},{cx:170,cy:70,r:30,fill:'#C084FC'},{cx:60,cy:160,r:20,fill:'#E879F9'}],text:'霓虹都市'}),images:[],createdAt:d(8)},
+    {id: generateId(), name:'极光摄影集', description:'北欧极光摄影作品集，捕捉北极圈内的自然光影奇观', category:'摄影', link:'https://unsplash.com/collections/123', cover:svgCover({gradient:['#064E3B','#059669'],shapes:[{cx:80,cy:90,r:45,fill:'#34D399'},{cx:180,cy:140,r:35,fill:'#6EE7B7'},{cx:130,cy:50,r:20,fill:'#A7F3D0'}],text:'极光摄影'}),images:[],createdAt:d(12)},
+    {id: generateId(), name:'Kinetic 动态海报', description:'音乐节系列动态海报设计，运用流体渐变与几何元素', category:'平面设计', link:'https://dribbble.com/shots/1876543', cover:svgCover({gradient:['#450A0A','#DC2626'],shapes:[{cx:130,cy:100,r:60,fill:'#EF4444'},{cx:70,cy:150,r:30,fill:'#F87171'},{cx:190,cy:60,r:25,fill:'#FCA5A5'}],text:'Kinetic'}),images:[],createdAt:d(15)},
+    {id: generateId(), name:'万象·品牌升级', description:'为头部互联网公司进行的品牌全面升级，重塑视觉语言与品牌气质', category:'品牌设计', link:'https://www.behance.net/gallery/12345', cover:svgCover({gradient:['#0F172A','#334155'],shapes:[{cx:100,cy:80,r:42,fill:'#0348FF'},{cx:160,cy:150,r:48,fill:'#475569'},{cx:70,cy:170,r:28,fill:'#64748B'}],text:'万象'}),images:[],createdAt:d(20)},
+    {id: generateId(), name:'3D 产品展示', description:'智能穿戴设备3D渲染场景，写实材质与光影表现', category:'3D设计', link:'', cover:svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:90,cy:90,r:38,fill:'#0348FF'},{cx:170,cy:130,r:42,fill:'#0F3460'},{cx:120,cy:170,r:32,fill:'#533483'}],text:'3D 产品'}),images:[],createdAt:d(25)},
+    {id: generateId(), name:'茶韵·包装设计', description:'高端茶叶品牌包装设计，融合东方美学与现代极简风格', category:'平面设计', link:'https://www.behance.net/gallery/67890', cover:svgCover({gradient:['#1C1917','#44403C'],shapes:[{cx:80,cy:110,r:38,fill:'#78716C'},{cx:170,cy:80,r:32,fill:'#A8A29E'},{cx:120,cy:160,r:25,fill:'#D6D3D1'}],text:'茶韵'}),images:[],createdAt:d(30)},
+  ];
+
+  Store.aiImages = [
+    {id: generateId(), name:'龙与地下城', description:'史诗级奇幻场景，巨龙盘旋于古老城堡之上，火焰与魔法交织', category:'概念设计', aiTool:'Midjourney', prompt:'Epic fantasy scene, a massive dragon circling an ancient castle at sunset, fire and magic, dramatic lighting, photorealistic, 8K', cover:svgCover({gradient:['#450A0A','#991B1B'],shapes:[{cx:100,cy:100,r:55,fill:'#EF4444'},{cx:170,cy:140,r:40,fill:'#F97316'},{cx:60,cy:150,r:30,fill:'#F59E0B'}],text:'龙与地下城'}),images:[],createdAt:d(3)},
+    {id: generateId(), name:'未来城市 2077', description:'赛博朋克风格的未来城市全景，高耸入云的摩天楼与霓虹广告牌', category:'概念设计', aiTool:'Stable Diffusion', prompt:'Cyberpunk cityscape 2077, flying cars, neon signs, rain, ultra detailed, cinematic lighting', cover:svgCover({gradient:['#0F0A2E','#4C1D95'],shapes:[{cx:100,cy:80,r:45,fill:'#8B5CF6'},{cx:170,cy:130,r:50,fill:'#A78BFA'},{cx:80,cy:160,r:30,fill:'#C4B5FD'}],text:'2077'}),images:[],createdAt:d(6)},
+    {id: generateId(), name:'极简产品渲染', description:'极简风格白色陶瓷产品渲染，纯净背景与柔和光影', category:'产品渲染', aiTool:'DALL·E', prompt:'Minimalist ceramic product photography, pure white background, soft studio lighting, 8K, hyperrealistic', cover:svgCover({gradient:['#1C1917','#292524'],shapes:[{cx:130,cy:110,r:50,fill:'#D6D3D1'},{cx:70,cy:140,r:30,fill:'#A8A29E'},{cx:180,cy:70,r:25,fill:'#E7E5E4'}],text:'极简'}),images:[],createdAt:d(9)},
+    {id: generateId(), name:'樱花庭院', description:'日式庭院中樱花盛开的唯美场景，花瓣飘落，阳光透过枝叶', category:'风景', aiTool:'ComfyUI', prompt:'Japanese garden with cherry blossoms in full bloom, petals falling, sunlight through trees, anime style, 4K', cover:svgCover({gradient:['#4A044E','#86198F'],shapes:[{cx:90,cy:90,r:42,fill:'#D946EF'},{cx:170,cy:120,r:38,fill:'#F0ABFC'},{cx:120,cy:160,r:30,fill:'#E879F9'}],text:'樱花庭院'}),images:[],createdAt:d(13)},
+    {id: generateId(), name:'星际穿越', description:'宏大宇宙场景，宇航员漂浮在壮丽的星云与行星环之间', category:'概念设计', aiTool:'Midjourney', prompt:'Astronaut floating in deep space, colorful nebula, Saturn rings, epic scale, cinematic, 8K', cover:svgCover({gradient:['#0F172A','#1E3A5F'],shapes:[{cx:100,cy:100,r:48,fill:'#3B82F6'},{cx:170,cy:140,r:40,fill:'#6366F1'},{cx:60,cy:150,r:30,fill:'#818CF8'}],text:'星际穿越'}),images:[],createdAt:d(17)},
+    {id: generateId(), name:'人物肖像系列', description:'AI生成的写实人物肖像，细腻的光影与面部细节表现', category:'人物', aiTool:'Leonardo AI', prompt:'Hyperrealistic portrait of an elderly man, dramatic Rembrandt lighting, every wrinkle and detail, 8K', cover:svgCover({gradient:['#1C1917','#44403C'],shapes:[{cx:130,cy:100,r:52,fill:'#78716C'},{cx:80,cy:150,r:34,fill:'#A8A29E'},{cx:170,cy:60,r:28,fill:'#D6D3D1'}],text:'肖像'}),images:[],createdAt:d(22)},
+  ];
+
+  Store.aiApps = [
+    {id: generateId(), name:'智能文案助手', type:'内容生成', link:'https://example.com/wenan', htmlFile:null, createdAt:d(4)},
+    {id: generateId(), name:'数据分析看板', type:'数据分析', link:'https://example.com/analytics', htmlFile:null, createdAt:d(7)},
+    {id: generateId(), name:'Logo 生成器', type:'创意设计', link:'https://example.com/logo', htmlFile:null, createdAt:d(11)},
+    {id: generateId(), name:'知识库问答', type:'智能助手', link:'https://example.com/kb', htmlFile:null, createdAt:d(18)},
+    {id: generateId(), name:'PPT 自动生成', type:'效率工具', link:'https://example.com/ppt', htmlFile:null, createdAt:d(26)},
+  ];
+}
+
+// ── Tab Navigation ──
+function switchTab(tab) {
+  Store.activeTab = tab;
+  Store.filter = 'all';
+  Store.searchQuery = '';
+  Store.searchVisible = false;
+  document.querySelectorAll('.tab-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.tab-item[data-tab="${tab}"]`).classList.add('active');
+  document.querySelectorAll('.tab-page').forEach(el => el.classList.remove('active'));
+  document.getElementById(`page-${tab}`).classList.add('active');
+  renderCurrentPage();
+}
+
+// ── Search ──
+function toggleSearch() {
+  Store.searchVisible = !Store.searchVisible;
+  Store.searchQuery = '';
+  renderCurrentPage();
+}
+
+function onSearchInput(val) {
+  Store.searchQuery = val.trim().toLowerCase();
+  const clearBtn = document.querySelector('.search-clear');
+  if (clearBtn) clearBtn.classList.toggle('visible', val.length > 0);
+  renderCurrentPage();
+}
+
+function clearSearch() {
+  Store.searchQuery = '';
+  const input = document.querySelector('.search-input');
+  if (input) input.value = '';
+  renderCurrentPage();
+}
+
+function filterBySearch(items) {
+  if (!Store.searchQuery) return items;
+  return items.filter(item => {
+    const searchStr = (item.name + ' ' + (item.description||'') + ' ' + (item.category||'') + ' ' + (item.aiTool||'') + ' ' + (item.prompt||'') + ' ' + (item.type||'')).toLowerCase();
+    return searchStr.includes(Store.searchQuery);
+  });
+}
+
+// ── Render ──
+function renderCurrentPage() {
+  switch (Store.activeTab) {
+    case 'works': renderWorks(); break;
+    case 'aiimage': renderAIImage(); break;
+    case 'aiapp': renderAIApp(); break;
+  }
+}
+
+function renderSearchBar() {
+  if (!Store.searchVisible) return '';
+  return `<div class="search-bar">
+    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input class="search-input" placeholder="搜索..." value="${Store.searchQuery}" oninput="onSearchInput(this.value)">
+    <button class="search-clear ${Store.searchQuery ? 'visible' : ''}" onclick="clearSearch()">✕</button>
+  </div>`;
+}
+
+// ── Works Page ──
+function renderWorks() {
+  const container = document.getElementById('page-works');
+  let items = Store.filter === 'all' ? [...Store.works] : Store.works.filter(w => w.category === Store.filter);
+  items = filterBySearch(items);
+  const categories = [...new Set(Store.works.map(w => w.category).filter(Boolean))];
+
+  let html = `<div style="padding-top:16px">${renderSearchBar()}
+    <div class="section-header">
+      <div>
+        <div class="section-title">个人作品</div>
+        <div class="section-subtitle">记录你的创意与设计</div>
+        <div class="section-meta"><span class="stat-badge">共 ${Store.works.length} 件</span></div>
+      </div>
+      <button class="add-btn" onclick="openWorksModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>上传
+      </button>
+    </div>`;
+
+  if (categories.length > 0 && !Store.searchQuery) {
+    html += `<div class="filter-row">
+      <div class="filter-chip ${Store.filter==='all'?'active':''}" onclick="setFilter('works','all')">全部</div>`;
+    categories.forEach(cat => {
+      html += `<div class="filter-chip ${Store.filter===cat?'active':''}" onclick="setFilter('works','${cat}')">${cat}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (items.length === 0) {
+    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M12 17v4"/></svg></div><h3>${Store.searchQuery ? '未找到匹配作品' : '还没有作品'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '上传你的第一个作品，展示你的创意与才华'}</p></div>`;
+  } else {
+    html += `<div class="card-grid">`;
+    items.forEach(work => {
+      html += `<div class="work-card" onclick="openWorkDetail('${work.id}')" oncontextmenu="event.preventDefault();showContextMenu(event,'works','${work.id}')">
+        <div class="work-card-cover">
+          ${work.cover ? `<img src="${work.cover}" alt="${work.name}" loading="lazy"/>` : svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:100,cy:100,r:40,fill:'#334155'},{cx:160,cy:140,r:35,fill:'#475569'}],text:work.name.slice(0,4)})}
+          <div class="work-card-overlay"></div>
+        </div>
+        <div class="work-card-body">
+          <div class="work-card-title">${work.name}</div>
+          <div class="work-card-desc">${work.description || '暂无描述'}</div>
+          <div class="work-card-tags">
+            ${work.category?`<span class="tag">${work.category}</span>`:''}
+            ${work.link?`<span class="tag tag-outline">🔗 项目链接</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// ── AI Image Page ──
+function renderAIImage() {
+  const container = document.getElementById('page-aiimage');
+  let items = Store.filter === 'all' ? [...Store.aiImages] : Store.aiImages.filter(w => w.category === Store.filter);
+  items = filterBySearch(items);
+  const categories = [...new Set(Store.aiImages.map(w => w.category).filter(Boolean))];
+
+  let html = `<div style="padding-top:16px">${renderSearchBar()}
+    <div class="section-header">
+      <div>
+        <div class="section-title">AI 生图</div>
+        <div class="section-subtitle">AI 辅助创作的视觉作品</div>
+        <div class="section-meta"><span class="stat-badge">共 ${Store.aiImages.length} 件</span></div>
+      </div>
+      <button class="add-btn" onclick="openAIImageModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>上传
+      </button>
+    </div>`;
+
+  if (categories.length > 0 && !Store.searchQuery) {
+    html += `<div class="filter-row">
+      <div class="filter-chip ${Store.filter==='all'?'active':''}" onclick="setFilter('aiimage','all')">全部</div>`;
+    categories.forEach(cat => {
+      html += `<div class="filter-chip ${Store.filter===cat?'active':''}" onclick="setFilter('aiimage','${cat}')">${cat}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (items.length === 0) {
+    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><circle cx="12" cy="12" r="3"/></svg></div><h3>${Store.searchQuery ? '未找到匹配作品' : '还没有AI生图作品'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '上传你用AI工具生成的精彩图像作品'}</p></div>`;
+  } else {
+    html += `<div class="card-grid">`;
+    items.forEach(work => {
+      html += `<div class="work-card" onclick="openAIImageDetail('${work.id}')" oncontextmenu="event.preventDefault();showContextMenu(event,'aiImages','${work.id}')">
+        <div class="work-card-cover">
+          ${work.cover ? `<img src="${work.cover}" alt="${work.name}" loading="lazy"/>` : svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:100,cy:100,r:40,fill:'#334155'},{cx:160,cy:140,r:35,fill:'#475569'}],text:work.name.slice(0,4)})}
+          <div class="work-card-overlay"></div>
+        </div>
+        <div class="work-card-body">
+          <div class="work-card-title">${work.name}</div>
+          <div class="work-card-desc">${work.description || '暂无描述'}</div>
+          <div class="work-card-tags">
+            ${work.aiTool?`<span class="tag">${work.aiTool}</span>`:''}
+            ${work.category?`<span class="tag tag-outline">${work.category}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// ── AI App Page ──
+function renderAIApp() {
+  const container = document.getElementById('page-aiapp');
+  let items = Store.filter === 'all' ? [...Store.aiApps] : Store.aiApps.filter(a => a.type === Store.filter);
+  items = filterBySearch(items);
+  const types = [...new Set(Store.aiApps.map(a => a.type).filter(Boolean))];
+
+  let html = `<div style="padding-top:16px">${renderSearchBar()}
+    <div class="section-header">
+      <div>
+        <div class="section-title">AI 生成应用</div>
+        <div class="section-subtitle">你的 AI 应用工具箱</div>
+        <div class="section-meta"><span class="stat-badge">共 ${Store.aiApps.length} 个</span></div>
+      </div>
+      <button class="add-btn" onclick="openAIAppModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>添加
+      </button>
+    </div>`;
+
+  if (types.length > 0 && !Store.searchQuery) {
+    html += `<div class="filter-row">
+      <div class="filter-chip ${Store.filter==='all'?'active':''}" onclick="setFilter('aiapp','all')">全部</div>`;
+    types.forEach(t => {
+      html += `<div class="filter-chip ${Store.filter===t?'active':''}" onclick="setFilter('aiapp','${t}')">${t}</div>`;
+    });
+    html += `</div>`;
+  }
+
+  if (items.length === 0) {
+    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="3"/></svg></div><h3>${Store.searchQuery ? '未找到匹配应用' : '还没有应用'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '添加你的AI应用链接或HTML文件，快速启动'}</p></div>`;
+  } else {
+    html += `<div class="app-list">`;
+    items.forEach(app => {
+      html += `<div class="app-card" onclick="openApp('${app.id}')" oncontextmenu="event.preventDefault();showContextMenu(event,'aiApps','${app.id}')">
+        <div class="app-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="app-info">
+          <div class="app-name">${app.name}</div>
+          <div class="app-meta">
+            <span class="app-type">${app.type || '未分类'}</span>
+            ${app.link ? `<span class="app-link-hint">${app.link.replace(/https?:\/\//,'').slice(0,25)}</span>` : ''}
+            ${app.htmlFile ? `<span class="app-link-hint">📄 ${app.htmlFile.name}</span>` : ''}
+          </div>
+        </div>
+        <div class="app-arrow">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  html += `</div>`;
+  container.innerHTML = html;
+}
+
+// ── Filter ──
+function setFilter(tab, filter) {
+  Store.filter = filter;
+  renderCurrentPage();
+}
+
+// ── Context Menu ──
+function showContextMenu(e, collection, id) {
+  closeContextMenu();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.id = 'contextMenu';
+  menu.style.left = Math.min(e.clientX, window.innerWidth - 130) + 'px';
+  menu.style.top = Math.min(e.clientY, window.innerHeight - 130) + 'px';
+  menu.innerHTML = `
+    <div class="context-item" onclick="editItem('${collection}','${id}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      编辑
+    </div>
+    <div class="context-item danger" onclick="confirmDelete('${collection}','${id}')">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+      删除
+    </div>
+  `;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeContextMenu, {once: true}), 50);
+}
+
+function closeContextMenu() {
+  const el = document.getElementById('contextMenu');
+  if (el) el.remove();
+}
+
+// ── Confirm Delete ──
+function confirmDelete(collection, id) {
+  closeContextMenu();
+  const container = document.getElementById('modalsContainer');
+  const item = Store[collection]?.find(x => x.id === id);
+  const name = item?.name || '此项';
+  container.innerHTML = `
+    <div class="confirm-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="confirm-dialog">
+        <h3>确认删除</h3>
+        <p>确定要删除「${name}」吗？此操作不可撤销。</p>
+        <div class="confirm-actions">
+          <button class="confirm-btn confirm-cancel" onclick="closeModal()">取消</button>
+          <button class="confirm-btn confirm-danger" onclick="deleteItem('${collection}','${id}')">删除</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function deleteItem(collection, id) {
+  Store[collection] = Store[collection].filter(x => x.id !== id);
+  saveData();
+  closeModal();
+  renderCurrentPage();
+  showToast('已删除');
+}
+
+// ── Edit Item ──
+function editItem(collection, id) {
+  closeContextMenu();
+  const item = Store[collection]?.find(x => x.id === id);
+  if (!item) return;
+  if (collection === 'works') openWorksModal(item);
+  else if (collection === 'aiImages') openAIImageModal(item);
+  else if (collection === 'aiApps') openAIAppModal(item);
+}
+
+// ── Modals ──
+function openModal(title, bodyHTML) {
+  const container = document.getElementById('modalsContainer');
+  container.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="modal-sheet">
+        <div class="modal-handle"></div>
+        <div class="modal-header">
+          <span class="modal-title">${title}</span>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">${bodyHTML}</div>
+      </div>
+    </div>
+  `;
+}
+
+function closeModal() {
+  document.getElementById('modalsContainer').innerHTML = '';
+  tempCoverData = null;
+  tempImagesData = [];
+  tempAppFileData = null;
+  editTargetId = null;
+}
+
+// ── File Handlers ──
+let tempCoverData = null;
+let tempImagesData = [];
+let tempAppFileData = null;
+let editTargetId = null;
+
+function handleCoverUpload(input, previewId, areaId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    tempCoverData = e.target.result;
+    document.getElementById(previewId).innerHTML = `<div class="upload-preview-item"><img src="${e.target.result}" alt="cover"><button class="remove-btn" onclick="tempCoverData=null;document.getElementById('${previewId}').innerHTML='';document.getElementById('${areaId}').style.display=''">✕</button></div>`;
+    document.getElementById(areaId).style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleImagesUpload(input, previewId) {
+  const files = Array.from(input.files);
+  const preview = document.getElementById(previewId);
+  files.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      tempImagesData.push(e.target.result);
+      const i = tempImagesData.length - 1;
+      preview.innerHTML += `<div class="upload-preview-item"><img src="${e.target.result}" alt="image"><button class="remove-btn" onclick="tempImagesData.splice(${i},1);this.parentElement.remove()">✕</button></div>`;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function handleAppFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    tempAppFileData = { name: file.name, content: e.target.result };
+    document.getElementById('appFileLabel').textContent = file.name;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Works Modal ──
+function openWorksModal(editItem) {
+  editTargetId = editItem?.id || null;
+  const isEdit = !!editItem;
+
+  openModal(isEdit ? '编辑作品' : '上传作品', `
+    <div class="form-group">
+      <label class="form-label">作品封面<span class="required">*</span></label>
+      <div class="upload-area" id="worksCoverUploadArea" onclick="document.getElementById('worksCoverInput').click()"${editItem?.cover ? ` style="display:none"` : ''}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span class="upload-text">点击上传封面</span>
+        <span class="upload-hint">支持 JPG、PNG，建议 1:1</span>
+      </div>
+      <input type="file" id="worksCoverInput" accept="image/*" style="display:none" onchange="handleCoverUpload(this, 'worksCoverPreview', 'worksCoverUploadArea')">
+      <div class="upload-preview" id="worksCoverPreview">${editItem?.cover ? `<div class="upload-preview-item"><img src="${editItem.cover}" alt="cover"><button class="remove-btn" onclick="tempCoverData=null;document.getElementById('worksCoverPreview').innerHTML='';document.getElementById('worksCoverUploadArea').style.display=''">✕</button></div>` : ''}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品图片</label>
+      <div class="upload-area" onclick="document.getElementById('worksImagesInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span class="upload-text">点击上传作品图片</span>
+        <span class="upload-hint">可上传多张</span>
+      </div>
+      <input type="file" id="worksImagesInput" accept="image/*" multiple style="display:none" onchange="handleImagesUpload(this, 'worksImagesPreview')">
+      <div class="upload-preview" id="worksImagesPreview">${editItem?.images?.map(img => `<div class="upload-preview-item"><img src="${img}" alt="image"></div>`).join('')||''}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品名称<span class="required">*</span></label>
+      <input class="form-input" id="worksName" placeholder="请输入作品名称" value="${editItem?.name||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品描述</label>
+      <textarea class="form-textarea" id="worksDesc" placeholder="描述你的作品...">${editItem?.description||''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品分类</label>
+      <select class="form-select" id="worksCategory">
+        <option value="">请选择分类</option>
+        ${['UI设计','平面设计','插画','摄影','品牌设计','3D设计','其他'].map(c => `<option value="${c}" ${editItem?.category===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">项目链接</label>
+      <input class="form-input" id="worksLink" placeholder="https://..." value="${editItem?.link||''}">
+    </div>
+    <button class="submit-btn" onclick="submitWorks()">${isEdit ? '保存修改' : '提交作品'}</button>
+    ${isEdit ? `<button class="submit-btn delete" onclick="confirmDelete('works','${editItem.id}')">删除此作品</button>` : ''}
+  `);
+
+  if (editItem) {
+    if (editItem.cover) tempCoverData = editItem.cover;
+    tempImagesData = [...(editItem.images || [])];
+  }
+}
+
+// ── AI Image Modal ──
+function openAIImageModal(editItem) {
+  editTargetId = editItem?.id || null;
+  const isEdit = !!editItem;
+
+  openModal(isEdit ? '编辑AI生图作品' : '上传AI生图作品', `
+    <div class="form-group">
+      <label class="form-label">作品封面<span class="required">*</span></label>
+      <div class="upload-area" id="aiImageCoverUploadArea" onclick="document.getElementById('aiImageCoverInput').click()"${editItem?.cover ? ` style="display:none"` : ''}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span class="upload-text">点击上传封面</span>
+        <span class="upload-hint">支持 JPG、PNG，建议 1:1</span>
+      </div>
+      <input type="file" id="aiImageCoverInput" accept="image/*" style="display:none" onchange="handleCoverUpload(this, 'aiImageCoverPreview', 'aiImageCoverUploadArea')">
+      <div class="upload-preview" id="aiImageCoverPreview">${editItem?.cover ? `<div class="upload-preview-item"><img src="${editItem.cover}" alt="cover"><button class="remove-btn" onclick="tempCoverData=null;document.getElementById('aiImageCoverPreview').innerHTML='';document.getElementById('aiImageCoverUploadArea').style.display=''">✕</button></div>` : ''}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品图片</label>
+      <div class="upload-area" onclick="document.getElementById('aiImageImagesInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+        <span class="upload-text">点击上传作品图片</span>
+        <span class="upload-hint">可上传多张</span>
+      </div>
+      <input type="file" id="aiImageImagesInput" accept="image/*" multiple style="display:none" onchange="handleImagesUpload(this, 'aiImageImagesPreview')">
+      <div class="upload-preview" id="aiImageImagesPreview">${editItem?.images?.map(img => `<div class="upload-preview-item"><img src="${img}" alt="image"></div>`).join('')||''}</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品名称<span class="required">*</span></label>
+      <input class="form-input" id="aiImageName" placeholder="请输入作品名称" value="${editItem?.name||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品描述</label>
+      <textarea class="form-textarea" id="aiImageDesc" placeholder="描述你的AI生图作品...">${editItem?.description||''}</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">作品分类</label>
+      <select class="form-select" id="aiImageCategory">
+        <option value="">请选择分类</option>
+        ${['人物','风景','抽象','概念设计','产品渲染','其他'].map(c => `<option value="${c}" ${editItem?.category===c?'selected':''}>${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">AI工具<span class="required">*</span></label>
+      <select class="form-select" id="aiImageTool">
+        <option value="">请选择AI工具</option>
+        ${['Midjourney','Stable Diffusion','DALL·E','ComfyUI','Leonardo AI','其他'].map(t => `<option value="${t}" ${editItem?.aiTool===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">提示词</label>
+      <textarea class="form-textarea" id="aiImagePrompt" placeholder="输入生成该作品使用的提示词...">${editItem?.prompt||''}</textarea>
+    </div>
+    <button class="submit-btn" onclick="submitAIImage()">${isEdit ? '保存修改' : '提交作品'}</button>
+    ${isEdit ? `<button class="submit-btn delete" onclick="confirmDelete('aiImages','${editItem.id}')">删除此作品</button>` : ''}
+  `);
+
+  if (editItem) {
+    if (editItem.cover) tempCoverData = editItem.cover;
+    tempImagesData = [...(editItem.images || [])];
+  }
+}
+
+// ── AI App Modal ──
+function openAIAppModal(editItem) {
+  editTargetId = editItem?.id || null;
+  const isEdit = !!editItem;
+
+  openModal(isEdit ? '编辑应用' : '添加应用', `
+    <div class="form-group">
+      <label class="form-label">应用名称<span class="required">*</span></label>
+      <input class="form-input" id="appName" placeholder="请输入应用名称" value="${editItem?.name||''}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">应用类型<span class="required">*</span></label>
+      <select class="form-select" id="appType">
+        <option value="">请选择应用类型</option>
+        ${['效率工具','创意设计','数据分析','内容生成','智能助手','其他'].map(t => `<option value="${t}" ${editItem?.type===t?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">应用链接</label>
+      <input class="form-input" id="appLink" placeholder="https://..." value="${editItem?.link||''}">
+      <span style="font-size:11px;color:var(--text-tertiary);margin-top:4px">或上传HTML文件</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">HTML文件</label>
+      <div class="upload-area" onclick="document.getElementById('appFileInput').click()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span class="upload-text" id="appFileLabel">${editItem?.htmlFile ? editItem.htmlFile.name : '点击上传HTML文件'}</span>
+        <span class="upload-hint">仅支持 .html 文件</span>
+      </div>
+      <input type="file" id="appFileInput" accept=".html,.htm" style="display:none" onchange="handleAppFile(this)">
+    </div>
+    <button class="submit-btn" onclick="submitAIApp()">${isEdit ? '保存修改' : '添加应用'}</button>
+    ${isEdit ? `<button class="submit-btn delete" onclick="confirmDelete('aiApps','${editItem.id}')">删除此应用</button>` : ''}
+  `);
+
+  if (editItem?.htmlFile) tempAppFileData = editItem.htmlFile;
+}
+
+// ── Submissions ──
+function submitWorks() {
+  const name = document.getElementById('worksName').value.trim();
+  if (!name) { showToast('请输入作品名称'); return; }
+  if (!tempCoverData && !editTargetId) { showToast('请上传作品封面'); return; }
+
+  const data = {
+    name,
+    description: document.getElementById('worksDesc').value.trim(),
+    category: document.getElementById('worksCategory').value,
+    link: document.getElementById('worksLink').value.trim(),
+    cover: tempCoverData,
+    images: [...tempImagesData],
+    createdAt: new Date().toISOString(),
+  };
+
+  if (editTargetId) {
+    const idx = Store.works.findIndex(w => w.id === editTargetId);
+    if (idx >= 0) {
+      data.id = editTargetId;
+      data.createdAt = Store.works[idx].createdAt;
+      if (!tempCoverData) data.cover = Store.works[idx].cover;
+      Store.works[idx] = data;
+    }
+  } else {
+    data.id = generateId();
+    Store.works.unshift(data);
+  }
+
+  const isEdit = !!editTargetId;
+  tempCoverData = null; tempImagesData = []; editTargetId = null;
+  saveData();
+  closeModal();
+  renderCurrentPage();
+  showToast(isEdit ? '作品已更新' : '作品上传成功！');
+}
+
+function submitAIImage() {
+  const name = document.getElementById('aiImageName').value.trim();
+  if (!name) { showToast('请输入作品名称'); return; }
+  if (!tempCoverData && !editTargetId) { showToast('请上传作品封面'); return; }
+  const tool = document.getElementById('aiImageTool').value;
+  if (!tool) { showToast('请选择AI工具'); return; }
+
+  const data = {
+    name,
+    description: document.getElementById('aiImageDesc').value.trim(),
+    category: document.getElementById('aiImageCategory').value,
+    aiTool: tool,
+    prompt: document.getElementById('aiImagePrompt').value.trim(),
+    cover: tempCoverData,
+    images: [...tempImagesData],
+    createdAt: new Date().toISOString(),
+  };
+
+  if (editTargetId) {
+    const idx = Store.aiImages.findIndex(w => w.id === editTargetId);
+    if (idx >= 0) {
+      data.id = editTargetId;
+      data.createdAt = Store.aiImages[idx].createdAt;
+      if (!tempCoverData) data.cover = Store.aiImages[idx].cover;
+      Store.aiImages[idx] = data;
+    }
+  } else {
+    data.id = generateId();
+    Store.aiImages.unshift(data);
+  }
+
+  const isEdit = !!editTargetId;
+  tempCoverData = null; tempImagesData = []; editTargetId = null;
+  saveData();
+  closeModal();
+  renderCurrentPage();
+  showToast(isEdit ? '作品已更新' : 'AI生图作品上传成功！');
+}
+
+function submitAIApp() {
+  const name = document.getElementById('appName').value.trim();
+  if (!name) { showToast('请输入应用名称'); return; }
+  const type = document.getElementById('appType').value;
+  if (!type) { showToast('请选择应用类型'); return; }
+  const link = document.getElementById('appLink').value.trim();
+  if (!link && !tempAppFileData && !editTargetId) { showToast('请输入应用链接或上传HTML文件'); return; }
+
+  const data = {
+    name,
+    type,
+    link,
+    htmlFile: tempAppFileData,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (editTargetId) {
+    const idx = Store.aiApps.findIndex(a => a.id === editTargetId);
+    if (idx >= 0) {
+      data.id = editTargetId;
+      data.createdAt = Store.aiApps[idx].createdAt;
+      if (!tempAppFileData) data.htmlFile = Store.aiApps[idx].htmlFile;
+      Store.aiApps[idx] = data;
+    }
+  } else {
+    data.id = generateId();
+    Store.aiApps.unshift(data);
+  }
+
+  const isEdit = !!editTargetId;
+  tempAppFileData = null; editTargetId = null;
+  saveData();
+  closeModal();
+  renderCurrentPage();
+  showToast(isEdit ? '应用已更新' : '应用添加成功！');
+}
+
+// ── Detail Views ──
+function openWorkDetail(id) {
+  const work = Store.works.find(w => w.id === id);
+  if (!work) return;
+  const allImages = work.cover ? [work.cover, ...(work.images||[])] : (work.images||[]);
+  const container = document.getElementById('modalsContainer');
+  container.innerHTML = `
+    <div class="detail-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="detail-card">
+        <div class="detail-cover">
+          ${work.cover ? `<img src="${work.cover}" alt="${work.name}"/>` : svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:100,cy:80,r:40,fill:'#334155'},{cx:160,cy:120,r:35,fill:'#475569'}],text:work.name.slice(0,4)})}
+          <button class="detail-close" onclick="closeModal()">✕</button>
+          <div class="detail-actions">
+            <button class="detail-act-btn" onclick="editItem('works','${work.id}')" title="编辑">✎</button>
+            <button class="detail-act-btn" onclick="confirmDelete('works','${work.id}')" title="删除" style="color:#FF3B5C">🗑</button>
+          </div>
+        </div>
+        <div class="detail-body">
+          <div class="detail-title">${work.name}</div>
+          ${work.description ? `<div class="detail-desc">${work.description}</div>` : ''}
+          <div class="detail-meta">
+            ${work.category ? `<span class="tag">${work.category}</span>` : ''}
+            <span class="detail-time">${formatTime(work.createdAt)}</span>
+          </div>
+          ${allImages.length > 1 ? `
+            <div class="detail-field">
+              <div class="detail-field-label">作品图集 (${allImages.length}张)</div>
+              <div class="detail-gallery">
+                ${allImages.map((img,i) => `<div class="detail-gallery-item" onclick="viewImage(event,'${img.replace(/'/g,"\\'")}')"><img src="${img}" alt="图片${i+1}" loading="lazy"/></div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${work.link ? `<a class="detail-link" href="${work.link}" target="_blank" onclick="event.stopPropagation()">查看项目 →</a>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openAIImageDetail(id) {
+  const work = Store.aiImages.find(w => w.id === id);
+  if (!work) return;
+  const allImages = work.cover ? [work.cover, ...(work.images||[])] : (work.images||[]);
+  const container = document.getElementById('modalsContainer');
+  container.innerHTML = `
+    <div class="detail-overlay" onclick="if(event.target===this)closeModal()">
+      <div class="detail-card">
+        <div class="detail-cover">
+          ${work.cover ? `<img src="${work.cover}" alt="${work.name}"/>` : svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:100,cy:80,r:40,fill:'#334155'},{cx:160,cy:120,r:35,fill:'#475569'}],text:work.name.slice(0,4)})}
+          <button class="detail-close" onclick="closeModal()">✕</button>
+          <div class="detail-actions">
+            <button class="detail-act-btn" onclick="editItem('aiImages','${work.id}')" title="编辑">✎</button>
+            <button class="detail-act-btn" onclick="confirmDelete('aiImages','${work.id}')" title="删除" style="color:#FF3B5C">🗑</button>
+          </div>
+        </div>
+        <div class="detail-body">
+          <div class="detail-title">${work.name}</div>
+          ${work.description ? `<div class="detail-desc">${work.description}</div>` : ''}
+          <div class="detail-meta">
+            ${work.aiTool ? `<span class="tag">${work.aiTool}</span>` : ''}
+            ${work.category ? `<span class="tag tag-outline">${work.category}</span>` : ''}
+            <span class="detail-time">${formatTime(work.createdAt)}</span>
+          </div>
+          ${work.prompt ? `
+            <div class="detail-field">
+              <div class="detail-field-label">提示词</div>
+              <div class="detail-field-value">${work.prompt}</div>
+            </div>
+          ` : ''}
+          ${allImages.length > 1 ? `
+            <div class="detail-field">
+              <div class="detail-field-label">作品图集 (${allImages.length}张)</div>
+              <div class="detail-gallery">
+                ${allImages.map((img,i) => `<div class="detail-gallery-item" onclick="viewImage(event,'${img.replace(/'/g,"\\'")}')"><img src="${img}" alt="图片${i+1}" loading="lazy"/></div>`).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function openApp(id) {
+  const app = Store.aiApps.find(a => a.id === id);
+  if (!app) return;
+  if (app.htmlFile) {
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(atob(app.htmlFile.content.split(',')[1]));
+      win.document.close();
+    }
+  } else if (app.link) {
+    window.open(app.link, '_blank');
+  }
+  showToast('正在打开应用...');
+}
+
+// ── Image Viewer ──
+function viewImage(e, src) {
+  e.stopPropagation();
+  const container = document.getElementById('modalsContainer');
+  container.innerHTML = `
+    <div class="image-viewer" onclick="closeModal()">
+      <img src="${src}" alt="预览"/>
+      <button class="image-viewer-close" onclick="closeModal()">✕</button>
+    </div>
+  `;
+}
+
+// ── Toast ──
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 2500);
+}
+
+// ── Data Export / Import ──
+function toggleDataMenu(e) {
+  e.stopPropagation();
+  closeContextMenu();
+  const btn = e.currentTarget;
+  const rect = btn.getBoundingClientRect();
+  const menu = document.createElement('div');
+  menu.className = 'context-menu';
+  menu.id = 'contextMenu';
+  menu.style.left = Math.min(rect.right - 130, window.innerWidth - 130) + 'px';
+  menu.style.top = (rect.bottom + 4) + 'px';
+  menu.innerHTML = `
+    <div class="context-item" onclick="pickDataFile()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      关联数据文件
+    </div>
+    <div class="context-item" onclick="exportData()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      导出数据
+    </div>
+    <div class="context-item" onclick="document.getElementById('dataImportInput').click()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="3 10 8 15 13 10"/><line x1="8" y1="15" x2="8" y2="1"/></svg>
+      导入数据
+    </div>
+  `;
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', closeContextMenu, {once: true}), 50);
+}
+
+function exportData() {
+  closeContextMenu();
+  const data = { works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '造物池数据备份_' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('数据已导出');
+}
+
+function importData(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.works && !data.aiImages && !data.aiApps) {
+        showToast('文件格式不正确');
+        return;
+      }
+      if (data.works) { Store.works = data.works; hydrateCovers(Store.works); }
+      if (data.aiImages) { Store.aiImages = data.aiImages; hydrateCovers(Store.aiImages); }
+      if (data.aiApps) Store.aiApps = data.aiApps;
+      saveData();
+      renderCurrentPage();
+      showToast('数据导入成功！');
+    } catch(err) {
+      showToast('文件解析失败，请检查文件格式');
+    }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+// ── Init ──
+(async function init() {
+  await loadData();
+  updateBadges();
+  renderWorks();
+})();
+</script>
+
+</body>
+</html>
