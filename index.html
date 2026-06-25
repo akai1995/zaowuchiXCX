@@ -77,6 +77,12 @@ body::after{
 .header-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
 .header-btn:active{background:var(--bg-card);border-color:var(--accent)}
 .header-btn .badge{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid var(--bg-primary)}
+.sync-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0}
+.sync-dot.idle{background:var(--text-tertiary)}
+.sync-dot.syncing{background:var(--warning);animation:pulse 1s infinite}
+.sync-dot.synced{background:var(--success)}
+.sync-dot.error{background:var(--danger)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Main Content */
 .main-content{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;scroll-behavior:smooth}
@@ -267,6 +273,7 @@ body::after{
       <span class="header-title">造物池</span>
     </div>
     <div class="header-actions">
+      <span class="sync-dot idle" id="syncDot" title="未配置同步"></span>
       <button class="header-btn" onclick="toggleDataMenu(event)" title="数据管理">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
       </button>
@@ -428,12 +435,229 @@ async function _syncToFile() {
 }
 
 function saveData() {
-  // Always save to localStorage (reliable, survives refresh)
   const data = { works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps };
   _lsSave(data);
   updateBadges();
-  // Try to sync to data.json file (best-effort, non-blocking)
   _syncToFile().catch(() => {});
+  _ghPush().catch(() => {});
+}
+
+// ── GitHub Sync ──
+const GH_CONFIG_KEY = 'zaowuchi_gh_config';
+
+function _ghConfig() {
+  try {
+    const raw = localStorage.getItem(GH_CONFIG_KEY);
+    return raw ? JSON.parse(raw) : { owner: '', repo: '', token: '', branch: 'gh-pages' };
+  } catch(e) { return { owner: '', repo: '', token: '', branch: 'gh-pages' }; }
+}
+
+function _ghSaveConfig(cfg) {
+  localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(cfg));
+}
+
+function _ghIsConfigured() {
+  const cfg = _ghConfig();
+  return !!(cfg.owner && cfg.repo && cfg.token);
+}
+
+function _setSyncStatus(state) {
+  const dot = document.getElementById('syncDot');
+  if (!dot) return;
+  dot.className = 'sync-dot ' + state;
+  const titles = {
+    idle: '未配置同步',
+    syncing: '正在同步...',
+    synced: '已同步',
+    error: '同步失败'
+  };
+  dot.title = titles[state] || '';
+}
+
+async function _ghPush() {
+  const cfg = _ghConfig();
+  if (!_ghIsConfigured()) { _setSyncStatus('idle'); return; }
+  _setSyncStatus('syncing');
+  try {
+    // Prepare data: strip coverConfig SVGs to keep file size manageable
+    const lightData = {
+      works: Store.works.map(w => {
+        const copy = { ...w };
+        if (copy.coverConfig) delete copy.cover;
+        return copy;
+      }),
+      aiImages: Store.aiImages.map(w => {
+        const copy = { ...w };
+        if (copy.coverConfig) delete copy.cover;
+        return copy;
+      }),
+      aiApps: Store.aiApps.map(a => ({ ...a }))
+    };
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(lightData, null, 2))));
+
+    // Get current file SHA
+    let sha = '';
+    try {
+      const getResp = await fetch(
+        `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?ref=${cfg.branch}`,
+        { headers: { Authorization: 'token ' + cfg.token } }
+      );
+      if (getResp.ok) {
+        const getData = await getResp.json();
+        sha = getData.sha;
+      }
+    } catch(e) {}
+
+    // Push updated file
+    const body = {
+      message: '更新 data.json',
+      content: content,
+      branch: cfg.branch
+    };
+    if (sha) body.sha = sha;
+
+    const resp = await fetch(
+      `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`,
+      {
+        method: 'PUT',
+        headers: {
+          Authorization: 'token ' + cfg.token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      }
+    );
+    if (resp.ok) {
+      _setSyncStatus('synced');
+      setTimeout(() => { if (_ghIsConfigured()) _setSyncStatus('synced'); }, 3000);
+    } else {
+      const err = await resp.json().catch(() => ({}));
+      if (err.message && err.message.includes('Bad credentials')) {
+        _setSyncStatus('error');
+        console.warn('GitHub Token 无效，请在设置中更新');
+      } else {
+        _setSyncStatus('error');
+        console.warn('GitHub 同步失败:', err.message);
+      }
+    }
+  } catch(e) {
+    _setSyncStatus('error');
+    console.warn('GitHub 同步失败:', e.message);
+  }
+}
+
+async function _ghPull() {
+  const cfg = _ghConfig();
+  if (!_ghIsConfigured()) return null;
+  try {
+    const resp = await fetch(
+      `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?ref=${cfg.branch}`,
+      { headers: { Authorization: 'token ' + cfg.token, 'Cache-Control': 'no-cache' } }
+    );
+    if (resp.ok) {
+      const data = await resp.json();
+      const decoded = JSON.parse(atob(data.content));
+      return decoded;
+    }
+  } catch(e) {}
+  return null;
+}
+
+async function _ghSync() {
+  if (!_ghIsConfigured()) {
+    showToast('请先配置 GitHub 同步');
+    openSettingsModal();
+    return;
+  }
+  _setSyncStatus('syncing');
+  try {
+    // Pull latest from GitHub, merge with current localStorage
+    const remote = await _ghPull();
+    if (remote) {
+      // Merge: remote data wins for same IDs, keep local-only items
+      const merge = (local, remoteArr) => {
+        const remoteIds = new Set(remoteArr.map(x => x.id));
+        const merged = [...remoteArr];
+        local.forEach(item => {
+          if (!remoteIds.has(item.id)) merged.push(item);
+        });
+        return merged;
+      };
+      Store.works = merge(Store.works, remote.works || []);
+      Store.aiImages = merge(Store.aiImages, remote.aiImages || []);
+      Store.aiApps = merge(Store.aiApps, remote.aiApps || []);
+      hydrateCovers(Store.works);
+      hydrateCovers(Store.aiImages);
+      _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
+      await _ghPush();
+      renderCurrentPage();
+      _setSyncStatus('synced');
+      showToast('同步完成');
+    } else {
+      _setSyncStatus('error');
+      showToast('同步失败，请检查配置');
+    }
+  } catch(e) {
+    _setSyncStatus('error');
+    showToast('同步失败');
+  }
+}
+
+function openSettingsModal() {
+  const cfg = _ghConfig();
+  openModal('GitHub 同步设置', `
+    <div class="form-group">
+      <label class="form-label">GitHub 用户名</label>
+      <input class="form-input" id="ghOwner" placeholder="例如：akai1995" value="${cfg.owner}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">仓库名</label>
+      <input class="form-input" id="ghRepo" placeholder="例如：zaowuchiXCX" value="${cfg.repo}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">分支</label>
+      <input class="form-input" id="ghBranch" placeholder="gh-pages" value="${cfg.branch||'gh-pages'}">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Personal Access Token<span class="required">*</span></label>
+      <input class="form-input" id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="${cfg.token}">
+      <span style="font-size:11px;color:var(--text-tertiary);margin-top:4px">
+        需要 <b>repo</b> 权限。在 GitHub Settings → Developer settings → Personal access tokens → Tokens (classic) 创建
+      </span>
+    </div>
+    <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--border-subtle);margin-top:4px">
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">同步原理</div>
+      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">
+        上传作品 → 自动推送到 GitHub 仓库 data.json<br>
+        其他设备打开 → 自动拉取最新 data.json<br>
+        点击"立即同步"可手动合并冲突
+      </div>
+    </div>
+    <button class="submit-btn" onclick="saveGhSettings()">保存设置</button>
+    ${_ghIsConfigured() ? `<button class="submit-btn" style="margin-top:8px;background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none" onclick="closeModal();_ghSync()">立即同步</button>` : ''}
+  `);
+}
+
+function saveGhSettings() {
+  const cfg = {
+    owner: document.getElementById('ghOwner').value.trim(),
+    repo: document.getElementById('ghRepo').value.trim(),
+    branch: document.getElementById('ghBranch').value.trim() || 'gh-pages',
+    token: document.getElementById('ghToken').value.trim()
+  };
+  if (!cfg.owner || !cfg.repo || !cfg.token) {
+    showToast('请填写完整信息');
+    return;
+  }
+  _ghSaveConfig(cfg);
+  closeModal();
+  _setSyncStatus('syncing');
+  // Test connection
+  _ghPush().then(() => {
+    showToast('设置已保存，同步成功');
+  }).catch(() => {
+    showToast('设置已保存，但同步失败。请检查 Token 是否有 repo 权限。');
+  });
 }
 
 // ── Data File Loader (GitHub Pages + file:// compatible) ──
@@ -484,7 +708,23 @@ function _applyLoadedData(data) {
 }
 
 async function loadData() {
-  // 1. Try localStorage first (instant for returning users)
+  // 1. Try GitHub API first (cross-device sync)
+  if (_ghIsConfigured()) {
+    const remote = await _ghPull();
+    if (remote && remote.works && remote.works.length > 0) {
+      Store.works = remote.works;
+      Store.aiImages = remote.aiImages || [];
+      Store.aiApps = remote.aiApps || [];
+      hydrateCovers(Store.works);
+      hydrateCovers(Store.aiImages);
+      _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
+      _setSyncStatus('synced');
+      _fileHandle = await _restoreFileHandle();
+      return;
+    }
+  }
+
+  // 2. Try localStorage (instant for returning users)
   const lsData = _lsLoad();
   if (lsData && Array.isArray(lsData.works) && Array.isArray(lsData.aiImages) && Array.isArray(lsData.aiApps)) {
     Store.works = lsData.works;
@@ -1372,6 +1612,14 @@ function toggleDataMenu(e) {
   menu.style.left = Math.min(rect.right - 130, window.innerWidth - 130) + 'px';
   menu.style.top = (rect.bottom + 4) + 'px';
   menu.innerHTML = `
+    <div class="context-item" onclick="openSettingsModal()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      GitHub 同步设置
+    </div>
+    <div class="context-item" onclick="closeContextMenu();_ghSync()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+      立即同步
+    </div>
     <div class="context-item" onclick="pickDataFile()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       关联数据文件
@@ -1431,6 +1679,7 @@ function importData(input) {
 (async function init() {
   await loadData();
   updateBadges();
+  if (_ghIsConfigured()) _setSyncStatus('synced');
   renderWorks();
 })();
 </script>
