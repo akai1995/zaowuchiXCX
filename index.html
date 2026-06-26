@@ -435,29 +435,6 @@ function seedDemoData() {
   ];
 }
 
-function loadSeedData() {
-  // 保存当前用户数据
-  const existingWorks = [...Store.works];
-  const existingAiImages = [...Store.aiImages];
-  const existingAiApps = [...Store.aiApps];
-  
-  // 加载种子数据到 Store
-  seedDemoData();
-  
-  // 合并：保留已有数据，添加种子数据（去重）
-  const seedWorkIds = new Set(Store.works.map(w => w.id));
-  const seedAiImageIds = new Set(Store.aiImages.map(w => w.id));
-  const seedAiAppIds = new Set(Store.aiApps.map(a => a.id));
-  
-  existingWorks.forEach(w => { if (!seedWorkIds.has(w.id)) Store.works.push(w); });
-  existingAiImages.forEach(w => { if (!seedAiImageIds.has(w.id)) Store.aiImages.push(w); });
-  existingAiApps.forEach(a => { if (!seedAiAppIds.has(a.id)) Store.aiApps.push(a); });
-  
-  saveData();
-  renderCurrentPage();
-  showToast('示例数据已加载');
-}
-
 function updateBadges() {
   ['works','aiimage','aiapp'].forEach(tab => {
     const badge = document.getElementById('badge-' + tab);
@@ -574,7 +551,7 @@ function renderWorks() {
   }
 
   if (items.length === 0) {
-    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M12 17v4"/></svg></div><h3>${Store.searchQuery ? '未找到匹配作品' : '还没有作品'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '上传你的第一个作品，展示你的创意与才华'}</p>${!Store.searchQuery ? `<button class="submit-btn" style="margin-top:14px;font-size:12px;padding:7px 18px" onclick="loadSeedData()">加载示例数据</button>` : ''}</div>`;
+    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M12 17v4"/></svg></div><h3>${Store.searchQuery ? '未找到匹配作品' : '还没有作品'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '上传你的第一个作品，展示你的创意与才华'}</p></div>`;
   } else {
     html += `<div class="card-grid">`;
     items.forEach(work => {
@@ -628,7 +605,7 @@ function renderAIImage() {
   }
 
   if (items.length === 0) {
-    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><circle cx="12" cy="12" r="3"/></svg></div><h3>${Store.searchQuery ? '未找到匹配作品' : '还没有AI生图作品'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '上传你用AI工具生成的精彩图像作品'}</p>${!Store.searchQuery ? `<button class="submit-btn" style="margin-top:14px;font-size:12px;padding:7px 18px" onclick="loadSeedData()">加载示例数据</button>` : ''}</div>`;
+    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><circle cx="12" cy="12" r="3"/></svg></div><h3>${Store.searchQuery ? '未找到匹配作品' : '还没有AI生图作品'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '上传你用AI工具生成的精彩图像作品'}</p></div>`;
   } else {
     html += `<div class="card-grid">`;
     items.forEach(work => {
@@ -682,7 +659,7 @@ function renderAIApp() {
   }
 
   if (items.length === 0) {
-    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="3"/></svg></div><h3>${Store.searchQuery ? '未找到匹配应用' : '还没有应用'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '添加你的AI应用链接或HTML文件，快速启动'}</p>${!Store.searchQuery ? `<button class="submit-btn" style="margin-top:14px;font-size:12px;padding:7px 18px" onclick="loadSeedData()">加载示例数据</button>` : ''}</div>`;
+    html += `<div class="empty-state"><div class="empty-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="3"/></svg></div><h3>${Store.searchQuery ? '未找到匹配应用' : '还没有应用'}</h3><p>${Store.searchQuery ? '换个关键词试试' : '添加你的AI应用链接或HTML文件，快速启动'}</p></div>`;
   } else {
     html += `<div class="app-list">`;
     items.forEach(app => {
