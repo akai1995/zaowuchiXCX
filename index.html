@@ -575,8 +575,6 @@ function renderWorks() {
   }
   html += `</div>`;
   container.innerHTML = html;
-  // Initialize swipe for app cards
-  setTimeout(initSwipeCards, 0);
 }
 
 // ── AI Image Page ──
@@ -693,8 +691,8 @@ function renderAIApp() {
   }
   html += `</div>`;
   container.innerHTML = html;
+  setTimeout(initSwipeCards, 0);
 }
-
 
 // ── Swipe Actions for AI App Cards (Pointer Events: unified touch + mouse) ──
 const SWIPE_THRESHOLD = 55;
@@ -717,6 +715,8 @@ function initSwipeCards() {
 
 function onPointerDown(e) {
   const card = e.currentTarget;
+  // 点击操作按钮时不干预指针事件，确保 click 能正确触发按钮 onclick
+  if (e.target.closest('.action-btn')) return;
   swipeState.card = card;
   swipeState.pointerId = e.pointerId;
   swipeState.startX = e.clientX;
