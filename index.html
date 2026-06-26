@@ -381,22 +381,43 @@ function saveData() {
 // ── Data Loading
 
 async function loadData() {
+  const DATA_VERSION = 2; // bump when seed data changes to force refresh
   const lsData = _lsLoad();
   const hasLs = lsData && Array.isArray(lsData.works) && lsData.works.length > 0;
+  const versionMatch = hasLs && lsData._v === DATA_VERSION;
 
-  if (hasLs) {
-    // localStorage has data → use it directly (already contains seed + user additions)
-    Store.works = lsData.works;
-    Store.aiImages = lsData.aiImages || [];
-    Store.aiApps = lsData.aiApps || [];
+  if (versionMatch) {
+    // localStorage has fresh data → use directly, deduplicate by ID
+    Store.works = _dedup(lsData.works);
+    Store.aiImages = _dedup(lsData.aiImages || []);
+    Store.aiApps = _dedup(lsData.aiApps || []);
   } else {
-    // First visit: use seed data
+    // First visit or stale data → re-seed, then merge user additions
     seedDemoData();
-    _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
+    if (hasLs) {
+      const seedIds = {
+        works: new Set(Store.works.map(w => w.id)),
+        aiImages: new Set(Store.aiImages.map(w => w.id)),
+        aiApps: new Set(Store.aiApps.map(a => a.id))
+      };
+      _dedup(lsData.works).forEach(w => { if (!seedIds.works.has(w.id)) Store.works.push(w); });
+      _dedup(lsData.aiImages || []).forEach(w => { if (!seedIds.aiImages.has(w.id)) Store.aiImages.push(w); });
+      _dedup(lsData.aiApps || []).forEach(a => { if (!seedIds.aiApps.has(a.id)) Store.aiApps.push(a); });
+    }
+    _lsSave({ _v: DATA_VERSION, works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
   }
 
   hydrateCovers(Store.works);
   hydrateCovers(Store.aiImages);
+}
+
+function _dedup(arr) {
+  const seen = new Set();
+  return arr.filter(item => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
 }
 
 function updateBadges() {
