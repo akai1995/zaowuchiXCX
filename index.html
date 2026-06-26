@@ -441,6 +441,7 @@ function seedDemoData() {
     {id: 'seed-w7', name:'万象·品牌升级', description:'为头部互联网公司进行的品牌全面升级，重塑视觉语言与品牌气质', category:'品牌设计', link:'https://www.behance.net/gallery/12345', cover:svgCover({gradient:['#0F172A','#334155'],shapes:[{cx:100,cy:80,r:42,fill:'#0348FF'},{cx:160,cy:150,r:48,fill:'#475569'},{cx:70,cy:170,r:28,fill:'#64748B'}],text:'万象'}),images:[],createdAt:d(20)},
     {id: 'seed-w8', name:'3D 产品展示', description:'智能穿戴设备3D渲染场景，写实材质与光影表现', category:'3D设计', link:'', cover:svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:90,cy:90,r:38,fill:'#0348FF'},{cx:170,cy:130,r:42,fill:'#0F3460'},{cx:120,cy:170,r:32,fill:'#533483'}],text:'3D 产品'}),images:[],createdAt:d(25)},
     {id: 'seed-w9', name:'茶韵·包装设计', description:'高端茶叶品牌包装设计，融合东方美学与现代极简风格', category:'平面设计', link:'https://www.behance.net/gallery/67890', cover:svgCover({gradient:['#1C1917','#44403C'],shapes:[{cx:80,cy:110,r:38,fill:'#78716C'},{cx:170,cy:80,r:32,fill:'#A8A29E'},{cx:120,cy:160,r:25,fill:'#D6D3D1'}],text:'茶韵'}),images:[],createdAt:d(30)},
+    {id: 'seed-w10', name:'星云·空间站', description:'太空站概念设计，零重力环境下的未来生活空间与交互界面', category:'UI设计', link:'', cover:svgCover({gradient:['#0B0F19','#1B2A4A'],shapes:[{cx:100,cy:90,r:44,fill:'#6366F1'},{cx:170,cy:130,r:40,fill:'#0348FF'},{cx:130,cy:170,r:30,fill:'#818CF8'}],text:'星云'}),images:[],createdAt:d(35)},
   ];
 
   Store.aiImages = [
@@ -450,6 +451,10 @@ function seedDemoData() {
     {id: 'seed-ai4', name:'樱花庭院', description:'日式庭院中樱花盛开的唯美场景，花瓣飘落，阳光透过枝叶', category:'风景', aiTool:'ComfyUI', prompt:'Japanese garden with cherry blossoms in full bloom, petals falling, sunlight through trees, anime style, 4K', cover:svgCover({gradient:['#4A044E','#86198F'],shapes:[{cx:90,cy:90,r:42,fill:'#D946EF'},{cx:170,cy:120,r:38,fill:'#F0ABFC'},{cx:120,cy:160,r:30,fill:'#E879F9'}],text:'樱花庭院'}),images:[],createdAt:d(13)},
     {id: 'seed-ai5', name:'星际穿越', description:'宏大宇宙场景，宇航员漂浮在壮丽的星云与行星环之间', category:'概念设计', aiTool:'Midjourney', prompt:'Astronaut floating in deep space, colorful nebula, Saturn rings, epic scale, cinematic, 8K', cover:svgCover({gradient:['#0F172A','#1E3A5F'],shapes:[{cx:100,cy:100,r:48,fill:'#3B82F6'},{cx:170,cy:140,r:40,fill:'#6366F1'},{cx:60,cy:150,r:30,fill:'#818CF8'}],text:'星际穿越'}),images:[],createdAt:d(17)},
     {id: 'seed-ai6', name:'人物肖像系列', description:'AI生成的写实人物肖像，细腻的光影与面部细节表现', category:'人物', aiTool:'Leonardo AI', prompt:'Hyperrealistic portrait of an elderly man, dramatic Rembrandt lighting, every wrinkle and detail, 8K', cover:svgCover({gradient:['#1C1917','#44403C'],shapes:[{cx:130,cy:100,r:52,fill:'#78716C'},{cx:80,cy:150,r:34,fill:'#A8A29E'},{cx:170,cy:60,r:28,fill:'#D6D3D1'}],text:'肖像'}),images:[],createdAt:d(22)},
+    {id: 'seed-ai7', name:'机械姬', description:'赛博格女性角色概念设计，机械与肉体融合的未来主义美学', category:'角色设计', aiTool:'Midjourney', prompt:'Cyborg female warrior, half human half machine, glowing blue circuits, futuristic armor, cinematic lighting, 8K', cover:svgCover({gradient:['#0F172A','#1E40AF'],shapes:[{cx:110,cy:100,r:48,fill:'#3B82F6'},{cx:170,cy:140,r:38,fill:'#06B6D4'},{cx:70,cy:150,r:30,fill:'#818CF8'}],text:'机械姬'}),images:[],createdAt:d(24)},
+    {id: 'seed-ai8', name:'水彩花卉', description:'写实水彩风格花卉插画，柔和色彩与流畅笔触', category:'插画', aiTool:'DALL·E', prompt:'Beautiful watercolor flowers, peonies and roses, soft pastel colors, flowing brush strokes, artistic, botanical illustration', cover:svgCover({gradient:['#4A1D4A','#BE185D'],shapes:[{cx:90,cy:90,r:42,fill:'#EC4899'},{cx:170,cy:120,r:38,fill:'#F472B6'},{cx:120,cy:160,r:30,fill:'#F9A8D4'}],text:'水彩花卉'}),images:[],createdAt:d(28)},
+    {id: 'seed-ai9', name:'废土机械', description:'后末日世界中的蒸汽朋克机械装置，锈蚀金属与复杂齿轮结构', category:'概念设计', aiTool:'Stable Diffusion', prompt:'Post-apocalyptic steampunk machinery, rusted gears and pipes, dramatic lighting, industrial wasteland, highly detailed', cover:svgCover({gradient:['#292524','#44403C'],shapes:[{cx:100,cy:100,r:46,fill:'#78716C'},{cx:170,cy:130,r:42,fill:'#A16207'},{cx:80,cy:160,r:32,fill:'#D97706'}],text:'废土'}),images:[],createdAt:d(31)},
+    {id: 'seed-ai10', name:'禅意庭院', description:'极简日式枯山水庭院，沙纹、石块与青苔构成的静谧空间', category:'风景', aiTool:'ComfyUI', prompt:'Zen garden, raked sand patterns, moss-covered rocks, bamboo fence, soft morning light, minimalist, 4K', cover:svgCover({gradient:['#14532D','#166534'],shapes:[{cx:130,cy:110,r:50,fill:'#22C55E'},{cx:70,cy:140,r:30,fill:'#4ADE80'},{cx:180,cy:70,r:25,fill:'#86EFAC'}],text:'禅意'}),images:[],createdAt:d(34)},
   ];
 
   Store.aiApps = [
@@ -458,6 +463,11 @@ function seedDemoData() {
     {id: 'seed-a3', name:'Logo 生成器', type:'创意设计', link:'https://example.com/logo', htmlFile:null, createdAt:d(11)},
     {id: 'seed-a4', name:'知识库问答', type:'智能助手', link:'https://example.com/kb', htmlFile:null, createdAt:d(18)},
     {id: 'seed-a5', name:'PPT 自动生成', type:'效率工具', link:'https://example.com/ppt', htmlFile:null, createdAt:d(26)},
+    {id: 'seed-a6', name:'AI 视频剪辑', type:'内容创作', link:'https://example.com/video', htmlFile:null, createdAt:d(29)},
+    {id: 'seed-a7', name:'代码审查助手', type:'开发工具', link:'https://example.com/codereview', htmlFile:null, createdAt:d(32)},
+    {id: 'seed-a8', name:'智能翻译官', type:'效率工具', link:'https://example.com/translate', htmlFile:null, createdAt:d(36)},
+    {id: 'seed-a9', name:'AI 音乐作曲', type:'创意设计', link:'https://example.com/music', htmlFile:null, createdAt:d(38)},
+    {id: 'seed-a10', name:'简历优化器', type:'效率工具', link:'https://example.com/resume', htmlFile:null, createdAt:d(40)},
   ];
 }
 
