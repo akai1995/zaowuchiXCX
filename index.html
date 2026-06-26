@@ -368,26 +368,16 @@ function _lsLoad() {
 // ── Data Loading ──
 
 function saveData() {
-  // 仅保存用户手动添加的数据（seed- 前缀的是系统内置数据）
-  const userData = {
-    works: Store.works.filter(w => !w.id.startsWith('seed-')),
-    aiImages: Store.aiImages.filter(w => !w.id.startsWith('seed-')),
-    aiApps: Store.aiApps.filter(a => !a.id.startsWith('seed-'))
-  };
-  _lsSave(userData);
+  _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
   updateBadges();
 }
 
 function loadData() {
-  // 始终加载内置种子数据
-  seedDemoData();
   // 合并用户手动添加的数据
   const userData = _lsLoad();
-  if (userData) {
-    if (userData.works) Store.works.push(...userData.works);
-    if (userData.aiImages) Store.aiImages.push(...userData.aiImages);
-    if (userData.aiApps) Store.aiApps.push(...userData.aiApps);
-  }
+  Store.works = userData && userData.works ? userData.works : [];
+  Store.aiImages = userData && userData.aiImages ? userData.aiImages : [];
+  Store.aiApps = userData && userData.aiApps ? userData.aiApps : [];
   hydrateCovers(Store.works);
   hydrateCovers(Store.aiImages);
 }
@@ -417,51 +407,6 @@ function formatTime(iso) {
   const weeks = Math.floor(days / 7);
   if (weeks < 4) return weeks + ' 周前';
   return new Date(iso).toLocaleDateString('zh-CN', {month:'short',day:'numeric'});
-}
-
-// ── Seed Demo Data ──
-function seedDemoData() {
-  const now = Date.now();
-  const d = (days) => new Date(now - days * 86400000).toISOString();
-
-  Store.works = [
-    {id: 'seed-w1', name:'野蛮生长', description:'探索自然与城市共生的视觉实验，用粗粝的质感与有机形态表达生命的张力', category:'平面设计', link:'', cover:svgCover({gradient:['#0A2E0A','#166534'],shapes:[{cx:80,cy:90,r:45,fill:'#22C55E'},{cx:170,cy:130,r:50,fill:'#16A34A'},{cx:110,cy:170,r:35,fill:'#4ADE80'}],text:'野蛮生长'}),images:[],createdAt:d(1)},
-    {id: 'seed-w2', name:'深海韵律', description:'海洋主题品牌视觉系统，包含Logo、字体、色彩规范与延展应用，为高端生活方式品牌打造', category:'品牌设计', link:'https://dribbble.com/shots/2156789', cover:svgCover({gradient:['#0A1A3A','#0348FF'],shapes:[{cx:80,cy:100,r:40,fill:'#0EA5E9'},{cx:180,cy:160,r:55,fill:'#0348FF'},{cx:120,cy:60,r:25,fill:'#38BDF8'}],text:'深海韵律'}),images:[],createdAt:d(2)},
-    {id: 'seed-w3', name:'FinTrack 仪表盘', description:'个人财务管理应用仪表盘设计，深色模式，数据可视化图表与流畅交互', category:'UI设计', link:'https://dribbble.com/shots/1985432', cover:svgCover({gradient:['#0F172A','#1E3A5F'],shapes:[{cx:60,cy:80,r:35,fill:'#0348FF'},{cx:190,cy:120,r:45,fill:'#2563EB'},{cx:100,cy:180,r:30,fill:'#3B82F6'}],text:'FinTrack'}),images:[],createdAt:d(5)},
-    {id: 'seed-w4', name:'霓虹都市', description:'赛博朋克风格城市夜景插画，霓虹灯与未来建筑交织，暗夜氛围浓烈', category:'插画', link:'', cover:svgCover({gradient:['#1A0533','#4C1D95'],shapes:[{cx:100,cy:110,r:50,fill:'#A855F7'},{cx:170,cy:70,r:30,fill:'#C084FC'},{cx:60,cy:160,r:20,fill:'#E879F9'}],text:'霓虹都市'}),images:[],createdAt:d(8)},
-    {id: 'seed-w5', name:'极光摄影集', description:'北欧极光摄影作品集，捕捉北极圈内的自然光影奇观', category:'摄影', link:'https://unsplash.com/collections/123', cover:svgCover({gradient:['#064E3B','#059669'],shapes:[{cx:80,cy:90,r:45,fill:'#34D399'},{cx:180,cy:140,r:35,fill:'#6EE7B7'},{cx:130,cy:50,r:20,fill:'#A7F3D0'}],text:'极光摄影'}),images:[],createdAt:d(12)},
-    {id: 'seed-w6', name:'Kinetic 动态海报', description:'音乐节系列动态海报设计，运用流体渐变与几何元素', category:'平面设计', link:'https://dribbble.com/shots/1876543', cover:svgCover({gradient:['#450A0A','#DC2626'],shapes:[{cx:130,cy:100,r:60,fill:'#EF4444'},{cx:70,cy:150,r:30,fill:'#F87171'},{cx:190,cy:60,r:25,fill:'#FCA5A5'}],text:'Kinetic'}),images:[],createdAt:d(15)},
-    {id: 'seed-w7', name:'万象·品牌升级', description:'为头部互联网公司进行的品牌全面升级，重塑视觉语言与品牌气质', category:'品牌设计', link:'https://www.behance.net/gallery/12345', cover:svgCover({gradient:['#0F172A','#334155'],shapes:[{cx:100,cy:80,r:42,fill:'#0348FF'},{cx:160,cy:150,r:48,fill:'#475569'},{cx:70,cy:170,r:28,fill:'#64748B'}],text:'万象'}),images:[],createdAt:d(20)},
-    {id: 'seed-w8', name:'3D 产品展示', description:'智能穿戴设备3D渲染场景，写实材质与光影表现', category:'3D设计', link:'', cover:svgCover({gradient:['#1A1A2E','#16213E'],shapes:[{cx:90,cy:90,r:38,fill:'#0348FF'},{cx:170,cy:130,r:42,fill:'#0F3460'},{cx:120,cy:170,r:32,fill:'#533483'}],text:'3D 产品'}),images:[],createdAt:d(25)},
-    {id: 'seed-w9', name:'茶韵·包装设计', description:'高端茶叶品牌包装设计，融合东方美学与现代极简风格', category:'平面设计', link:'https://www.behance.net/gallery/67890', cover:svgCover({gradient:['#1C1917','#44403C'],shapes:[{cx:80,cy:110,r:38,fill:'#78716C'},{cx:170,cy:80,r:32,fill:'#A8A29E'},{cx:120,cy:160,r:25,fill:'#D6D3D1'}],text:'茶韵'}),images:[],createdAt:d(30)},
-    {id: 'seed-w10', name:'星云·空间站', description:'太空站概念设计，零重力环境下的未来生活空间与交互界面', category:'UI设计', link:'', cover:svgCover({gradient:['#0B0F19','#1B2A4A'],shapes:[{cx:100,cy:90,r:44,fill:'#6366F1'},{cx:170,cy:130,r:40,fill:'#0348FF'},{cx:130,cy:170,r:30,fill:'#818CF8'}],text:'星云'}),images:[],createdAt:d(35)},
-  ];
-
-  Store.aiImages = [
-    {id: 'seed-ai1', name:'龙与地下城', description:'史诗级奇幻场景，巨龙盘旋于古老城堡之上，火焰与魔法交织', category:'概念设计', aiTool:'Midjourney', prompt:'Epic fantasy scene, a massive dragon circling an ancient castle at sunset, fire and magic, dramatic lighting, photorealistic, 8K', cover:svgCover({gradient:['#450A0A','#991B1B'],shapes:[{cx:100,cy:100,r:55,fill:'#EF4444'},{cx:170,cy:140,r:40,fill:'#F97316'},{cx:60,cy:150,r:30,fill:'#F59E0B'}],text:'龙与地下城'}),images:[],createdAt:d(3)},
-    {id: 'seed-ai2', name:'未来城市 2077', description:'赛博朋克风格的未来城市全景，高耸入云的摩天楼与霓虹广告牌', category:'概念设计', aiTool:'Stable Diffusion', prompt:'Cyberpunk cityscape 2077, flying cars, neon signs, rain, ultra detailed, cinematic lighting', cover:svgCover({gradient:['#0F0A2E','#4C1D95'],shapes:[{cx:100,cy:80,r:45,fill:'#8B5CF6'},{cx:170,cy:130,r:50,fill:'#A78BFA'},{cx:80,cy:160,r:30,fill:'#C4B5FD'}],text:'2077'}),images:[],createdAt:d(6)},
-    {id: 'seed-ai3', name:'极简产品渲染', description:'极简风格白色陶瓷产品渲染，纯净背景与柔和光影', category:'产品渲染', aiTool:'DALL·E', prompt:'Minimalist ceramic product photography, pure white background, soft studio lighting, 8K, hyperrealistic', cover:svgCover({gradient:['#1C1917','#292524'],shapes:[{cx:130,cy:110,r:50,fill:'#D6D3D1'},{cx:70,cy:140,r:30,fill:'#A8A29E'},{cx:180,cy:70,r:25,fill:'#E7E5E4'}],text:'极简'}),images:[],createdAt:d(9)},
-    {id: 'seed-ai4', name:'樱花庭院', description:'日式庭院中樱花盛开的唯美场景，花瓣飘落，阳光透过枝叶', category:'风景', aiTool:'ComfyUI', prompt:'Japanese garden with cherry blossoms in full bloom, petals falling, sunlight through trees, anime style, 4K', cover:svgCover({gradient:['#4A044E','#86198F'],shapes:[{cx:90,cy:90,r:42,fill:'#D946EF'},{cx:170,cy:120,r:38,fill:'#F0ABFC'},{cx:120,cy:160,r:30,fill:'#E879F9'}],text:'樱花庭院'}),images:[],createdAt:d(13)},
-    {id: 'seed-ai5', name:'星际穿越', description:'宏大宇宙场景，宇航员漂浮在壮丽的星云与行星环之间', category:'概念设计', aiTool:'Midjourney', prompt:'Astronaut floating in deep space, colorful nebula, Saturn rings, epic scale, cinematic, 8K', cover:svgCover({gradient:['#0F172A','#1E3A5F'],shapes:[{cx:100,cy:100,r:48,fill:'#3B82F6'},{cx:170,cy:140,r:40,fill:'#6366F1'},{cx:60,cy:150,r:30,fill:'#818CF8'}],text:'星际穿越'}),images:[],createdAt:d(17)},
-    {id: 'seed-ai6', name:'人物肖像系列', description:'AI生成的写实人物肖像，细腻的光影与面部细节表现', category:'人物', aiTool:'Leonardo AI', prompt:'Hyperrealistic portrait of an elderly man, dramatic Rembrandt lighting, every wrinkle and detail, 8K', cover:svgCover({gradient:['#1C1917','#44403C'],shapes:[{cx:130,cy:100,r:52,fill:'#78716C'},{cx:80,cy:150,r:34,fill:'#A8A29E'},{cx:170,cy:60,r:28,fill:'#D6D3D1'}],text:'肖像'}),images:[],createdAt:d(22)},
-    {id: 'seed-ai7', name:'机械姬', description:'赛博格女性角色概念设计，机械与肉体融合的未来主义美学', category:'角色设计', aiTool:'Midjourney', prompt:'Cyborg female warrior, half human half machine, glowing blue circuits, futuristic armor, cinematic lighting, 8K', cover:svgCover({gradient:['#0F172A','#1E40AF'],shapes:[{cx:110,cy:100,r:48,fill:'#3B82F6'},{cx:170,cy:140,r:38,fill:'#06B6D4'},{cx:70,cy:150,r:30,fill:'#818CF8'}],text:'机械姬'}),images:[],createdAt:d(24)},
-    {id: 'seed-ai8', name:'水彩花卉', description:'写实水彩风格花卉插画，柔和色彩与流畅笔触', category:'插画', aiTool:'DALL·E', prompt:'Beautiful watercolor flowers, peonies and roses, soft pastel colors, flowing brush strokes, artistic, botanical illustration', cover:svgCover({gradient:['#4A1D4A','#BE185D'],shapes:[{cx:90,cy:90,r:42,fill:'#EC4899'},{cx:170,cy:120,r:38,fill:'#F472B6'},{cx:120,cy:160,r:30,fill:'#F9A8D4'}],text:'水彩花卉'}),images:[],createdAt:d(28)},
-    {id: 'seed-ai9', name:'废土机械', description:'后末日世界中的蒸汽朋克机械装置，锈蚀金属与复杂齿轮结构', category:'概念设计', aiTool:'Stable Diffusion', prompt:'Post-apocalyptic steampunk machinery, rusted gears and pipes, dramatic lighting, industrial wasteland, highly detailed', cover:svgCover({gradient:['#292524','#44403C'],shapes:[{cx:100,cy:100,r:46,fill:'#78716C'},{cx:170,cy:130,r:42,fill:'#A16207'},{cx:80,cy:160,r:32,fill:'#D97706'}],text:'废土'}),images:[],createdAt:d(31)},
-    {id: 'seed-ai10', name:'禅意庭院', description:'极简日式枯山水庭院，沙纹、石块与青苔构成的静谧空间', category:'风景', aiTool:'ComfyUI', prompt:'Zen garden, raked sand patterns, moss-covered rocks, bamboo fence, soft morning light, minimalist, 4K', cover:svgCover({gradient:['#14532D','#166534'],shapes:[{cx:130,cy:110,r:50,fill:'#22C55E'},{cx:70,cy:140,r:30,fill:'#4ADE80'},{cx:180,cy:70,r:25,fill:'#86EFAC'}],text:'禅意'}),images:[],createdAt:d(34)},
-  ];
-
-  Store.aiApps = [
-    {id: 'seed-a1', name:'智能文案助手', type:'内容生成', link:'https://example.com/wenan', htmlFile:null, createdAt:d(4)},
-    {id: 'seed-a2', name:'数据分析看板', type:'数据分析', link:'https://example.com/analytics', htmlFile:null, createdAt:d(7)},
-    {id: 'seed-a3', name:'Logo 生成器', type:'创意设计', link:'https://example.com/logo', htmlFile:null, createdAt:d(11)},
-    {id: 'seed-a4', name:'知识库问答', type:'智能助手', link:'https://example.com/kb', htmlFile:null, createdAt:d(18)},
-    {id: 'seed-a5', name:'PPT 自动生成', type:'效率工具', link:'https://example.com/ppt', htmlFile:null, createdAt:d(26)},
-    {id: 'seed-a6', name:'AI 视频剪辑', type:'内容创作', link:'https://example.com/video', htmlFile:null, createdAt:d(29)},
-    {id: 'seed-a7', name:'代码审查助手', type:'开发工具', link:'https://example.com/codereview', htmlFile:null, createdAt:d(32)},
-    {id: 'seed-a8', name:'智能翻译官', type:'效率工具', link:'https://example.com/translate', htmlFile:null, createdAt:d(36)},
-    {id: 'seed-a9', name:'AI 音乐作曲', type:'创意设计', link:'https://example.com/music', htmlFile:null, createdAt:d(38)},
-    {id: 'seed-a10', name:'简历优化器', type:'效率工具', link:'https://example.com/resume', htmlFile:null, createdAt:d(40)},
-  ];
 }
 
 // ── Tab Navigation ──
