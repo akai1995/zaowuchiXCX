@@ -350,14 +350,44 @@ function hydrateCovers(items) {
   });
 }
 
+// ── Persistence: localStorage（仅保存用户手动添加的数据）──
+const LS_KEY = 'zaowuchi_userdata';
+
+function _lsSave(data) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); return true; }
+  catch(e) { return false; }
+}
+
+function _lsLoad() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
 // ── Data Loading ──
 
 function saveData() {
+  // 仅保存用户手动添加的数据（seed- 前缀的是系统内置数据）
+  const userData = {
+    works: Store.works.filter(w => !w.id.startsWith('seed-')),
+    aiImages: Store.aiImages.filter(w => !w.id.startsWith('seed-')),
+    aiApps: Store.aiApps.filter(a => !a.id.startsWith('seed-'))
+  };
+  _lsSave(userData);
   updateBadges();
 }
 
 function loadData() {
+  // 始终加载内置种子数据
   seedDemoData();
+  // 合并用户手动添加的数据
+  const userData = _lsLoad();
+  if (userData) {
+    if (userData.works) Store.works.push(...userData.works);
+    if (userData.aiImages) Store.aiImages.push(...userData.aiImages);
+    if (userData.aiApps) Store.aiApps.push(...userData.aiApps);
+  }
   hydrateCovers(Store.works);
   hydrateCovers(Store.aiImages);
 }
