@@ -350,18 +350,26 @@ function hydrateCovers(items) {
   });
 }
 
-// ── Persistence: localStorage（仅保存用户手动添加的数据）──
+// ── Persistence: localStorage ──
 const LS_KEY = 'zaowuchi_userdata';
+const DATA_VERSION = 3; // 升级版本号自动清除旧数据
 
 function _lsSave(data) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); return true; }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ _v: DATA_VERSION, ...data })); return true; }
   catch(e) { return false; }
 }
 
 function _lsLoad() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // 版本不匹配 → 清除旧数据，重新开始
+    if (parsed._v !== DATA_VERSION) {
+      localStorage.removeItem(LS_KEY);
+      return null;
+    }
+    return parsed;
   } catch(e) { return null; }
 }
 
