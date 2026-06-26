@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -77,12 +77,6 @@ body::after{
 .header-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
 .header-btn:active{background:var(--bg-card);border-color:var(--accent)}
 .header-btn .badge{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid var(--bg-primary)}
-.sync-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0;transition:background .3s}
-.sync-dot.idle{background:var(--text-tertiary);cursor:pointer}
-.sync-dot.syncing{background:var(--warning);animation:pulse 1s infinite}
-.sync-dot.synced{background:var(--success)}
-.sync-dot.error{background:var(--danger);cursor:pointer}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Main Content */
 .main-content{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;scroll-behavior:smooth}
@@ -273,7 +267,6 @@ body::after{
       <span class="header-title">造物池</span>
     </div>
     <div class="header-actions">
-      <span class="sync-dot idle" id="syncDot" title="未配置同步"></span>
       <button class="header-btn" onclick="toggleDataMenu(event)" title="数据管理">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
       </button>
@@ -347,7 +340,6 @@ const ICONS = {
 };
 
 // ── Data ──
-const DATA_FILE = 'data.json';
 const LS_KEY = 'zaowuchi_userdata';
 const Store = { works: [], aiImages: [], aiApps: [], activeTab: 'works', filter: 'all', searchQuery: '', searchVisible: false };
 
@@ -362,8 +354,7 @@ function hydrateCovers(items) {
   });
 }
 
-// ── Persistence: localStorage (primary) + data.json (seed) + file sync (bonus) ──
-let _fileHandle = null;
+// ── Persistence: localStorage ──
 
 function _lsSave(data) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(data)); return true; }
@@ -378,422 +369,40 @@ function _lsLoad() {
   return null;
 }
 
-// IndexedDB for persisting the file handle
-function _idb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('zaowuchi_fs', 1);
-    req.onupgradeneeded = () => { req.result.createObjectStore('handles'); };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function _saveFileHandle(handle) {
-  try {
-    const db = await _idb();
-    const tx = db.transaction('handles', 'readwrite');
-    tx.objectStore('handles').put(handle, 'dataFileHandle');
-    await new Promise(r => { tx.oncomplete = r; tx.onerror = r; });
-    db.close();
-  } catch(e) {}
-}
-
-async function _restoreFileHandle() {
-  try {
-    const db = await _idb();
-    const tx = db.transaction('handles', 'readonly');
-    const req = tx.objectStore('handles').get('dataFileHandle');
-    const handle = await new Promise((resolve, reject) => {
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-    db.close();
-    if (handle) {
-      const opts = { mode: 'readwrite' };
-      const ok = await handle.queryPermission(opts);
-      if (ok === 'granted') return handle;
-      const req2 = await handle.requestPermission(opts);
-      if (req2 === 'granted') return handle;
-    }
-    return null;
-  } catch(e) { return null; }
-}
-
-async function _syncToFile() {
-  if (!_fileHandle) {
-    _fileHandle = await _restoreFileHandle();
-    if (!_fileHandle) return;
-  }
-  try {
-    const json = JSON.stringify({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps }, null, 2);
-    const writable = await _fileHandle.createWritable();
-    await writable.write(json);
-    await writable.close();
-  } catch(e) {
-    _fileHandle = null;
-  }
-}
+// ── Data Loading ──
 
 function saveData() {
-  const data = { works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps };
-  _lsSave(data);
+  _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
   updateBadges();
-  _syncToFile().catch(() => {});
-  _ghPush().catch(() => {});
 }
 
-// ── GitHub Sync（简化版：只需 Token，其余自动检测）──
-const GH_CONFIG_KEY = 'zaowuchi_gh_token';
 
-function _autoDetectGhInfo() {
-  const host = window.location.hostname;
-  // GitHub Pages: username.github.io/repo/
-  if (host.endsWith('github.io')) {
-    const owner = host.replace('.github.io', '');
-    const pathParts = window.location.pathname.split('/').filter(Boolean);
-    const repo = pathParts[0] || 'zaowuchiXCX';
-    return { owner, repo, branch: 'gh-pages' };
-  }
-  return { owner: 'akai1995', repo: 'zaowuchiXCX', branch: 'gh-pages' };
-}
 
-function _ghConfig() {
-  const info = _autoDetectGhInfo();
-  const token = localStorage.getItem(GH_CONFIG_KEY) || '';
-  return { ...info, token };
-}
-
-function _ghIsConfigured() {
-  return !!localStorage.getItem(GH_CONFIG_KEY);
-}
-
-function _setSyncStatus(state) {
-  const dot = document.getElementById('syncDot');
-  if (!dot) return;
-  dot.className = 'sync-dot ' + state;
-  const titles = {
-    idle: '点击配置同步',
-    syncing: '正在同步...',
-    synced: '已同步',
-    error: '同步失败，点击重试'
-  };
-  dot.title = titles[state] || '';
-  if (state === 'idle' || state === 'error') {
-    dot.style.cursor = 'pointer';
-    dot.onclick = function() { openSettingsModal(); };
-  } else {
-    dot.style.cursor = 'default';
-    dot.onclick = null;
-  }
-}
-
-async function _ghPush() {
-  const cfg = _ghConfig();
-  if (!_ghIsConfigured()) { _setSyncStatus('idle'); return; }
-  _setSyncStatus('syncing');
-  try {
-    // Prepare data: strip coverConfig SVGs to keep file size manageable
-    const lightData = {
-      works: Store.works.map(w => {
-        const copy = { ...w };
-        if (copy.coverConfig) delete copy.cover;
-        return copy;
-      }),
-      aiImages: Store.aiImages.map(w => {
-        const copy = { ...w };
-        if (copy.coverConfig) delete copy.cover;
-        return copy;
-      }),
-      aiApps: Store.aiApps.map(a => ({ ...a }))
-    };
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(lightData, null, 2))));
-
-    // Get current file SHA
-    let sha = '';
-    try {
-      const getResp = await fetch(
-        `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?ref=${cfg.branch}`,
-        { headers: { Authorization: 'token ' + cfg.token } }
-      );
-      if (getResp.ok) {
-        const getData = await getResp.json();
-        sha = getData.sha;
-      }
-    } catch(e) {}
-
-    // Push updated file
-    const body = {
-      message: '更新 data.json',
-      content: content,
-      branch: cfg.branch
-    };
-    if (sha) body.sha = sha;
-
-    const resp = await fetch(
-      `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json`,
-      {
-        method: 'PUT',
-        headers: {
-          Authorization: 'token ' + cfg.token,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(body)
-      }
-    );
-    if (resp.ok) {
-      _setSyncStatus('synced');
-      setTimeout(() => { if (_ghIsConfigured()) _setSyncStatus('synced'); }, 3000);
-    } else {
-      const err = await resp.json().catch(() => ({}));
-      if (err.message && err.message.includes('Bad credentials')) {
-        _setSyncStatus('error');
-        console.warn('GitHub Token 无效，请在设置中更新');
-      } else {
-        _setSyncStatus('error');
-        console.warn('GitHub 同步失败:', err.message);
-      }
-    }
-  } catch(e) {
-    _setSyncStatus('error');
-    console.warn('GitHub 同步失败:', e.message);
-  }
-}
-
-async function _ghPull() {
-  const cfg = _ghConfig();
-  if (!_ghIsConfigured()) return null;
-  try {
-    const resp = await fetch(
-      `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/data.json?ref=${cfg.branch}`,
-      { headers: { Authorization: 'token ' + cfg.token, 'Cache-Control': 'no-cache' } }
-    );
-    if (resp.ok) {
-      const data = await resp.json();
-      const decoded = JSON.parse(atob(data.content));
-      return decoded;
-    }
-  } catch(e) {}
-  return null;
-}
-
-async function _ghSync() {
-  if (!_ghIsConfigured()) {
-    showToast('请先配置 GitHub 同步');
-    openSettingsModal();
-    return;
-  }
-  _setSyncStatus('syncing');
-  try {
-    // Pull latest from GitHub, merge with current localStorage
-    const remote = await _ghPull();
-    if (remote) {
-      // Merge: remote data wins for same IDs, keep local-only items
-      const merge = (local, remoteArr) => {
-        const remoteIds = new Set(remoteArr.map(x => x.id));
-        const merged = [...remoteArr];
-        local.forEach(item => {
-          if (!remoteIds.has(item.id)) merged.push(item);
-        });
-        return merged;
-      };
-      Store.works = merge(Store.works, remote.works || []);
-      Store.aiImages = merge(Store.aiImages, remote.aiImages || []);
-      Store.aiApps = merge(Store.aiApps, remote.aiApps || []);
-      hydrateCovers(Store.works);
-      hydrateCovers(Store.aiImages);
-      _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
-      await _ghPush();
-      renderCurrentPage();
-      _setSyncStatus('synced');
-      showToast('同步完成');
-    } else {
-      _setSyncStatus('error');
-      showToast('同步失败，请检查配置');
-    }
-  } catch(e) {
-    _setSyncStatus('error');
-    showToast('同步失败');
-  }
-}
-
-function openSettingsModal() {
-  const cfg = _ghConfig();
-  const configured = _ghIsConfigured();
-  const info = _autoDetectGhInfo();
-  openModal('云同步配置', `
-    <div style="text-align:center;margin-bottom:16px">
-      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
-        只需一步：粘贴 GitHub Token 即可开启跨设备同步
-      </div>
-    </div>
-    <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border-subtle);margin-bottom:14px">
-      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">自动检测的仓库信息</div>
-      <div style="font-size:12px;color:var(--text-secondary);font-family:monospace">
-        ${info.owner}/${info.repo}（${info.branch}）
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">GitHub Token</label>
-      <input class="form-input" id="ghToken" type="password" placeholder="${configured ? '已配置（输入新 Token 覆盖）' : 'ghp_xxxxxxxxxxxxxxxxxxxx'}" value="${cfg.token}">
-      <span style="font-size:11px;color:var(--text-tertiary);margin-top:4px">
-        需要 <b>repo</b> 权限。
-        <a href="https://github.com/settings/tokens/new?scopes=repo&description=zaowuchiXCX" target="_blank" style="color:var(--accent);text-decoration:underline">点击此处一键创建 Token</a>
-      </span>
-    </div>
-    <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border-subtle);margin-top:4px">
-      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">
-        配置后：添加作品 → 自动同步到云端<br>
-        其他设备打开 → 自动拉取最新数据
-      </div>
-    </div>
-    <button class="submit-btn" onclick="saveGhSettings()">${configured ? '更新 Token' : '开启同步'}</button>
-    ${configured ? `<button class="submit-btn" style="margin-top:8px;background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none" onclick="closeModal();_ghSync()">手动同步</button>
-    <button class="submit-btn" style="margin-top:8px;background:transparent;border:1px solid var(--danger);color:var(--danger);box-shadow:none" onclick="localStorage.removeItem(GH_CONFIG_KEY);closeModal();_setSyncStatus('idle');showToast('已断开同步')">断开同步</button>` : ''}
-  `);
-}
-
-function saveGhSettings() {
-  const token = document.getElementById('ghToken').value.trim();
-  if (!token) {
-    showToast('请输入 Token');
-    return;
-  }
-  localStorage.setItem(GH_CONFIG_KEY, token);
-  closeModal();
-  _setSyncStatus('syncing');
-  _ghPush().then(() => {
-    showToast('配置成功，已开启云端同步');
-  }).catch(() => {
-    showToast('Token 已保存，但同步测试失败。请检查 Token 权限。');
-    _setSyncStatus('error');
-  });
-}
-
-// ── Data File Loader (GitHub Pages + file:// compatible) ──
-function _isFileProtocol() {
-  return window.location.protocol === 'file:';
-}
-
-async function _loadDataFileAsync() {
-  // On https:// (GitHub Pages), fetch works perfectly
-  try {
-    const resp = await fetch(DATA_FILE, { cache: 'no-cache' });
-    if (resp.ok) return await resp.json();
-  } catch(e) {}
-  // Async XHR fallback
-  try {
-    return await new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', DATA_FILE, true);
-      xhr.onload = () => {
-        if (xhr.status === 200 || xhr.status === 0) {
-          try { resolve(JSON.parse(xhr.responseText)); } catch(e) { reject(e); }
-        } else { reject(new Error('xhr fail')); }
-      };
-      xhr.onerror = () => reject(new Error('xhr error'));
-      xhr.send();
-    });
-  } catch(e) { return null; }
-}
-
-function _loadDataFileSync() {
-  // Sync XHR — only needed for file:// protocol
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', DATA_FILE, false);
-    xhr.overrideMimeType('application/json');
-    xhr.send();
-    if (xhr.status === 200 || xhr.status === 0) {
-      return JSON.parse(xhr.responseText);
-    }
-  } catch(e) {}
-  return null;
-}
-
-function _applyLoadedData(data) {
-  if (data.works) { Store.works = data.works; hydrateCovers(Store.works); }
-  if (data.aiImages) { Store.aiImages = data.aiImages; hydrateCovers(Store.aiImages); }
-  if (data.aiApps) { Store.aiApps = data.aiApps; }
-}
+// ── Data Loading
 
 async function loadData() {
-  // 1. Try GitHub API first (cross-device sync)
-  if (_ghIsConfigured()) {
-    const remote = await _ghPull();
-    if (remote && remote.works && remote.works.length > 0) {
-      Store.works = remote.works;
-      Store.aiImages = remote.aiImages || [];
-      Store.aiApps = remote.aiApps || [];
-      hydrateCovers(Store.works);
-      hydrateCovers(Store.aiImages);
-      _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
-      _setSyncStatus('synced');
-      _fileHandle = await _restoreFileHandle();
-      return;
-    }
-  }
-
-  // 2. Try localStorage (instant for returning users)
+  // Static data embedded in code — always visible, no config needed
   const lsData = _lsLoad();
-  if (lsData && Array.isArray(lsData.works) && Array.isArray(lsData.aiImages) && Array.isArray(lsData.aiApps)) {
-    Store.works = lsData.works;
-    Store.aiImages = lsData.aiImages;
-    Store.aiApps = lsData.aiApps;
-    hydrateCovers(Store.works);
-    hydrateCovers(Store.aiImages);
-    _fileHandle = await _restoreFileHandle();
-    return;
+  const hasLs = lsData && Array.isArray(lsData.works);
+
+  // Base: seed data (always available)
+  seedDemoData();
+
+  // Merge localStorage (user additions from same browser)
+  if (hasLs) {
+    const cloudIds = {
+      works: new Set(Store.works.map(w => w.id)),
+      aiImages: new Set(Store.aiImages.map(w => w.id)),
+      aiApps: new Set(Store.aiApps.map(a => a.id))
+    };
+    lsData.works.forEach(w => { if (!cloudIds.works.has(w.id)) Store.works.push(w); });
+    lsData.aiImages.forEach(w => { if (!cloudIds.aiImages.has(w.id)) Store.aiImages.push(w); });
+    lsData.aiApps.forEach(a => { if (!cloudIds.aiApps.has(a.id)) Store.aiApps.push(a); });
   }
 
-  // 2. Load data.json — strategy depends on protocol
-  let loaded = false;
-  if (_isFileProtocol()) {
-    // file:// — sync XHR is the only reliable way
-    const data = _loadDataFileSync();
-    if (data) { _applyLoadedData(data); loaded = true; }
-  }
-  if (!loaded) {
-    // https:// (GitHub Pages) — fetch is best
-    const data = await _loadDataFileAsync();
-    if (data) { _applyLoadedData(data); loaded = true; }
-  }
-
-  // 3. Fallback to built-in seed data
-  if (!loaded || (Store.works.length === 0 && Store.aiImages.length === 0 && Store.aiApps.length === 0)) {
-    seedDemoData();
-  }
-
-  // 4. Save to localStorage for next visit
+  hydrateCovers(Store.works);
+  hydrateCovers(Store.aiImages);
   _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
-
-  // 5. Restore file handle for write-back sync
-  _fileHandle = await _restoreFileHandle();
-}
-
-// ── File Picker (user grants permission for file sync) ──
-async function pickDataFile() {
-  if (!window.showOpenFilePicker) {
-    showToast('当前浏览器不支持文件系统API，请使用Chrome/Edge。数据已通过浏览器存储保存。');
-    return false;
-  }
-  try {
-    const [handle] = await window.showOpenFilePicker({
-      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
-      multiple: false
-    });
-    if (handle.name.toLowerCase().includes('data')) {
-      _fileHandle = handle;
-      await _saveFileHandle(handle);
-      showToast('数据文件已关联');
-      await _syncToFile();
-      return true;
-    } else {
-      showToast('请选择 data.json 文件');
-      return false;
-    }
-  } catch(e) {
-    return false;
-  }
 }
 
 function updateBadges() {
@@ -1621,14 +1230,6 @@ function toggleDataMenu(e) {
   menu.style.left = Math.min(rect.right - 130, window.innerWidth - 130) + 'px';
   menu.style.top = (rect.bottom + 4) + 'px';
   menu.innerHTML = `
-    <div class="context-item" onclick="openSettingsModal()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      云同步 ${_ghIsConfigured() ? '<span style="color:var(--success);font-size:10px">已开启</span>' : '<span style="color:var(--text-tertiary);font-size:10px">未配置</span>'}
-    </div>
-    <div class="context-item" onclick="pickDataFile()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      关联数据文件
-    </div>
     <div class="context-item" onclick="exportData()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       导出数据
@@ -1684,7 +1285,6 @@ function importData(input) {
 (async function init() {
   await loadData();
   updateBadges();
-  if (_ghIsConfigured()) _setSyncStatus('synced');
   renderWorks();
 })();
 </script>
