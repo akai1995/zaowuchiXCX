@@ -77,11 +77,11 @@ body::after{
 .header-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--border-medium);background:var(--bg-surface);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s}
 .header-btn:active{background:var(--bg-card);border-color:var(--accent)}
 .header-btn .badge{position:absolute;top:-2px;right:-2px;width:8px;height:8px;border-radius:50%;background:var(--danger);border:2px solid var(--bg-primary)}
-.sync-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0}
-.sync-dot.idle{background:var(--text-tertiary)}
+.sync-dot{width:8px;height:8px;border-radius:50%;margin-right:6px;flex-shrink:0;transition:background .3s}
+.sync-dot.idle{background:var(--text-tertiary);cursor:pointer}
 .sync-dot.syncing{background:var(--warning);animation:pulse 1s infinite}
 .sync-dot.synced{background:var(--success)}
-.sync-dot.error{background:var(--danger)}
+.sync-dot.error{background:var(--danger);cursor:pointer}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* Main Content */
@@ -442,23 +442,29 @@ function saveData() {
   _ghPush().catch(() => {});
 }
 
-// ── GitHub Sync ──
-const GH_CONFIG_KEY = 'zaowuchi_gh_config';
+// ── GitHub Sync（简化版：只需 Token，其余自动检测）──
+const GH_CONFIG_KEY = 'zaowuchi_gh_token';
 
-function _ghConfig() {
-  try {
-    const raw = localStorage.getItem(GH_CONFIG_KEY);
-    return raw ? JSON.parse(raw) : { owner: '', repo: '', token: '', branch: 'gh-pages' };
-  } catch(e) { return { owner: '', repo: '', token: '', branch: 'gh-pages' }; }
+function _autoDetectGhInfo() {
+  const host = window.location.hostname;
+  // GitHub Pages: username.github.io/repo/
+  if (host.endsWith('github.io')) {
+    const owner = host.replace('.github.io', '');
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const repo = pathParts[0] || 'zaowuchiXCX';
+    return { owner, repo, branch: 'gh-pages' };
+  }
+  return { owner: 'akai1995', repo: 'zaowuchiXCX', branch: 'gh-pages' };
 }
 
-function _ghSaveConfig(cfg) {
-  localStorage.setItem(GH_CONFIG_KEY, JSON.stringify(cfg));
+function _ghConfig() {
+  const info = _autoDetectGhInfo();
+  const token = localStorage.getItem(GH_CONFIG_KEY) || '';
+  return { ...info, token };
 }
 
 function _ghIsConfigured() {
-  const cfg = _ghConfig();
-  return !!(cfg.owner && cfg.repo && cfg.token);
+  return !!localStorage.getItem(GH_CONFIG_KEY);
 }
 
 function _setSyncStatus(state) {
@@ -466,12 +472,19 @@ function _setSyncStatus(state) {
   if (!dot) return;
   dot.className = 'sync-dot ' + state;
   const titles = {
-    idle: '未配置同步',
+    idle: '点击配置同步',
     syncing: '正在同步...',
     synced: '已同步',
-    error: '同步失败'
+    error: '同步失败，点击重试'
   };
   dot.title = titles[state] || '';
+  if (state === 'idle' || state === 'error') {
+    dot.style.cursor = 'pointer';
+    dot.onclick = function() { openSettingsModal(); };
+  } else {
+    dot.style.cursor = 'default';
+    dot.onclick = null;
+  }
 }
 
 async function _ghPush() {
@@ -605,58 +618,54 @@ async function _ghSync() {
 
 function openSettingsModal() {
   const cfg = _ghConfig();
-  openModal('GitHub 同步设置', `
-    <div class="form-group">
-      <label class="form-label">GitHub 用户名</label>
-      <input class="form-input" id="ghOwner" placeholder="例如：akai1995" value="${cfg.owner}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">仓库名</label>
-      <input class="form-input" id="ghRepo" placeholder="例如：zaowuchiXCX" value="${cfg.repo}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">分支</label>
-      <input class="form-input" id="ghBranch" placeholder="gh-pages" value="${cfg.branch||'gh-pages'}">
-    </div>
-    <div class="form-group">
-      <label class="form-label">Personal Access Token<span class="required">*</span></label>
-      <input class="form-input" id="ghToken" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" value="${cfg.token}">
-      <span style="font-size:11px;color:var(--text-tertiary);margin-top:4px">
-        需要 <b>repo</b> 权限。在 GitHub Settings → Developer settings → Personal access tokens → Tokens (classic) 创建
-      </span>
-    </div>
-    <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:12px;border:1px solid var(--border-subtle);margin-top:4px">
-      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">同步原理</div>
-      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">
-        上传作品 → 自动推送到 GitHub 仓库 data.json<br>
-        其他设备打开 → 自动拉取最新 data.json<br>
-        点击"立即同步"可手动合并冲突
+  const configured = _ghIsConfigured();
+  const info = _autoDetectGhInfo();
+  openModal('云同步配置', `
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">
+        只需一步：粘贴 GitHub Token 即可开启跨设备同步
       </div>
     </div>
-    <button class="submit-btn" onclick="saveGhSettings()">保存设置</button>
-    ${_ghIsConfigured() ? `<button class="submit-btn" style="margin-top:8px;background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none" onclick="closeModal();_ghSync()">立即同步</button>` : ''}
+    <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border-subtle);margin-bottom:14px">
+      <div style="font-size:11px;color:var(--text-tertiary);margin-bottom:4px">自动检测的仓库信息</div>
+      <div style="font-size:12px;color:var(--text-secondary);font-family:monospace">
+        ${info.owner}/${info.repo}（${info.branch}）
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">GitHub Token</label>
+      <input class="form-input" id="ghToken" type="password" placeholder="${configured ? '已配置（输入新 Token 覆盖）' : 'ghp_xxxxxxxxxxxxxxxxxxxx'}" value="${cfg.token}">
+      <span style="font-size:11px;color:var(--text-tertiary);margin-top:4px">
+        需要 <b>repo</b> 权限。
+        <a href="https://github.com/settings/tokens/new?scopes=repo&description=zaowuchiXCX" target="_blank" style="color:var(--accent);text-decoration:underline">点击此处一键创建 Token</a>
+      </span>
+    </div>
+    <div style="background:var(--bg-card);border-radius:var(--radius-sm);padding:10px 14px;border:1px solid var(--border-subtle);margin-top:4px">
+      <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6">
+        配置后：添加作品 → 自动同步到云端<br>
+        其他设备打开 → 自动拉取最新数据
+      </div>
+    </div>
+    <button class="submit-btn" onclick="saveGhSettings()">${configured ? '更新 Token' : '开启同步'}</button>
+    ${configured ? `<button class="submit-btn" style="margin-top:8px;background:transparent;border:1px solid var(--accent);color:var(--accent);box-shadow:none" onclick="closeModal();_ghSync()">手动同步</button>
+    <button class="submit-btn" style="margin-top:8px;background:transparent;border:1px solid var(--danger);color:var(--danger);box-shadow:none" onclick="localStorage.removeItem(GH_CONFIG_KEY);closeModal();_setSyncStatus('idle');showToast('已断开同步')">断开同步</button>` : ''}
   `);
 }
 
 function saveGhSettings() {
-  const cfg = {
-    owner: document.getElementById('ghOwner').value.trim(),
-    repo: document.getElementById('ghRepo').value.trim(),
-    branch: document.getElementById('ghBranch').value.trim() || 'gh-pages',
-    token: document.getElementById('ghToken').value.trim()
-  };
-  if (!cfg.owner || !cfg.repo || !cfg.token) {
-    showToast('请填写完整信息');
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) {
+    showToast('请输入 Token');
     return;
   }
-  _ghSaveConfig(cfg);
+  localStorage.setItem(GH_CONFIG_KEY, token);
   closeModal();
   _setSyncStatus('syncing');
-  // Test connection
   _ghPush().then(() => {
-    showToast('设置已保存，同步成功');
+    showToast('配置成功，已开启云端同步');
   }).catch(() => {
-    showToast('设置已保存，但同步失败。请检查 Token 是否有 repo 权限。');
+    showToast('Token 已保存，但同步测试失败。请检查 Token 权限。');
+    _setSyncStatus('error');
   });
 }
 
@@ -1613,12 +1622,8 @@ function toggleDataMenu(e) {
   menu.style.top = (rect.bottom + 4) + 'px';
   menu.innerHTML = `
     <div class="context-item" onclick="openSettingsModal()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      GitHub 同步设置
-    </div>
-    <div class="context-item" onclick="closeContextMenu();_ghSync()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
-      立即同步
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      云同步 ${_ghIsConfigured() ? '<span style="color:var(--success);font-size:10px">已开启</span>' : '<span style="color:var(--text-tertiary);font-size:10px">未配置</span>'}
     </div>
     <div class="context-item" onclick="pickDataFile()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
