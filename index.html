@@ -350,42 +350,14 @@ function hydrateCovers(items) {
   });
 }
 
-// ── Persistence: localStorage ──
-const LS_KEY = 'zaowuchi_userdata';
-const DATA_VERSION = 3; // 升级版本号自动清除旧数据
-
-function _lsSave(data) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify({ _v: DATA_VERSION, ...data })); return true; }
-  catch(e) { return false; }
-}
-
-function _lsLoad() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // 版本不匹配 → 清除旧数据，重新开始
-    if (parsed._v !== DATA_VERSION) {
-      localStorage.removeItem(LS_KEY);
-      return null;
-    }
-    return parsed;
-  } catch(e) { return null; }
-}
-
 // ── Data Loading ──
 
 function saveData() {
-  _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
   updateBadges();
 }
 
 function loadData() {
-  // 合并用户手动添加的数据
-  const userData = _lsLoad();
-  Store.works = userData && userData.works ? userData.works : [];
-  Store.aiImages = userData && userData.aiImages ? userData.aiImages : [];
-  Store.aiApps = userData && userData.aiApps ? userData.aiApps : [];
+  seedDemoData();
   hydrateCovers(Store.works);
   hydrateCovers(Store.aiImages);
 }
