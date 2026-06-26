@@ -267,9 +267,6 @@ body::after{
       <span class="header-title">造物池</span>
     </div>
     <div class="header-actions">
-      <button class="header-btn" onclick="toggleDataMenu(event)" title="数据管理">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-      </button>
       <button class="header-btn" onclick="toggleSearch()" title="搜索">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       </button>
@@ -303,7 +300,7 @@ body::after{
 
 <div id="modalsContainer"></div>
 <div id="toastContainer"></div>
-<input type="file" id="dataImportInput" accept=".json" style="display:none" onchange="importData(this)">
+
 
 <script>
 // ── SVG Cover Generators ──
@@ -340,7 +337,6 @@ const ICONS = {
 };
 
 // ── Data ──
-const LS_KEY = 'zaowuchi_userdata';
 const Store = { works: [], aiImages: [], aiApps: [], activeTab: 'works', filter: 'all', searchQuery: '', searchVisible: false };
 
 function generateId() { return 'id_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8); }
@@ -354,70 +350,16 @@ function hydrateCovers(items) {
   });
 }
 
-// ── Persistence: localStorage ──
-
-function _lsSave(data) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); return true; }
-  catch(e) { return false; }
-}
-
-function _lsLoad() {
-  try {
-    const raw = localStorage.getItem(LS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch(e) {}
-  return null;
-}
-
 // ── Data Loading ──
 
 function saveData() {
-  _lsSave({ works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
   updateBadges();
 }
 
-
-
-// ── Data Loading
-
-async function loadData() {
-  const DATA_VERSION = 2; // bump when seed data changes to force refresh
-  const lsData = _lsLoad();
-  const hasLs = lsData && Array.isArray(lsData.works) && lsData.works.length > 0;
-  const versionMatch = hasLs && lsData._v === DATA_VERSION;
-
-  if (versionMatch) {
-    // localStorage has fresh data → use directly, deduplicate by ID
-    Store.works = _dedup(lsData.works);
-    Store.aiImages = _dedup(lsData.aiImages || []);
-    Store.aiApps = _dedup(lsData.aiApps || []);
-  } else {
-    // First visit or stale data → re-seed, then merge user additions
-    seedDemoData();
-    if (hasLs) {
-      const seedIds = {
-        works: new Set(Store.works.map(w => w.id)),
-        aiImages: new Set(Store.aiImages.map(w => w.id)),
-        aiApps: new Set(Store.aiApps.map(a => a.id))
-      };
-      _dedup(lsData.works).forEach(w => { if (!seedIds.works.has(w.id)) Store.works.push(w); });
-      _dedup(lsData.aiImages || []).forEach(w => { if (!seedIds.aiImages.has(w.id)) Store.aiImages.push(w); });
-      _dedup(lsData.aiApps || []).forEach(a => { if (!seedIds.aiApps.has(a.id)) Store.aiApps.push(a); });
-    }
-    _lsSave({ _v: DATA_VERSION, works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps });
-  }
-
+function loadData() {
+  seedDemoData();
   hydrateCovers(Store.works);
   hydrateCovers(Store.aiImages);
-}
-
-function _dedup(arr) {
-  const seen = new Set();
-  return arr.filter(item => {
-    if (seen.has(item.id)) return false;
-    seen.add(item.id);
-    return true;
-  });
 }
 
 function updateBadges() {
@@ -1243,72 +1185,9 @@ function showToast(message) {
   setTimeout(() => toast.remove(), 2500);
 }
 
-// ── Data Export / Import ──
-function toggleDataMenu(e) {
-  e.stopPropagation();
-  closeContextMenu();
-  const btn = e.currentTarget;
-  const rect = btn.getBoundingClientRect();
-  const menu = document.createElement('div');
-  menu.className = 'context-menu';
-  menu.id = 'contextMenu';
-  menu.style.left = Math.min(rect.right - 130, window.innerWidth - 130) + 'px';
-  menu.style.top = (rect.bottom + 4) + 'px';
-  menu.innerHTML = `
-    <div class="context-item" onclick="exportData()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      导出数据
-    </div>
-    <div class="context-item" onclick="document.getElementById('dataImportInput').click()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="3 10 8 15 13 10"/><line x1="8" y1="15" x2="8" y2="1"/></svg>
-      导入数据
-    </div>
-  `;
-  document.body.appendChild(menu);
-  setTimeout(() => document.addEventListener('click', closeContextMenu, {once: true}), 50);
-}
-
-function exportData() {
-  closeContextMenu();
-  const data = { works: Store.works, aiImages: Store.aiImages, aiApps: Store.aiApps, exportedAt: new Date().toISOString() };
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = '造物池数据备份_' + new Date().toISOString().slice(0,10) + '.json';
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('数据已导出');
-}
-
-function importData(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (!data.works && !data.aiImages && !data.aiApps) {
-        showToast('文件格式不正确');
-        return;
-      }
-      if (data.works) { Store.works = data.works; hydrateCovers(Store.works); }
-      if (data.aiImages) { Store.aiImages = data.aiImages; hydrateCovers(Store.aiImages); }
-      if (data.aiApps) Store.aiApps = data.aiApps;
-      saveData();
-      renderCurrentPage();
-      showToast('数据导入成功！');
-    } catch(err) {
-      showToast('文件解析失败，请检查文件格式');
-    }
-  };
-  reader.readAsText(file);
-  input.value = '';
-}
-
 // ── Init ──
-(async function init() {
-  await loadData();
+(function init() {
+  loadData();
   updateBadges();
   renderWorks();
 })();
